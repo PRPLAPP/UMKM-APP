@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Bell, LogOut, Menu, X, Plus, Edit, Trash2, TrendingUp, ShoppingBag, Star, DollarSign } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Bell, LogOut, Menu, X, Plus, Edit, Trash2, TrendingUp, ShoppingBag, Star, DollarSign, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -11,31 +11,121 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import ThemeToggle from '../ThemeToggle';
 import { toast } from 'sonner@2.0.3';
+import { createProduct, fetchOrders, fetchProducts, fetchSalesSummary, type Order, type Product, type SalesSummary } from '@/lib/api';
 
 interface MSMEDashboardProps {
   onLogout: () => void;
 }
 
-const products = [
-  { id: 1, name: 'Traditional Batik Fabric', price: 150000, stock: 25, sales: 48, status: 'active' },
-  { id: 2, name: 'Handmade Bamboo Basket', price: 75000, stock: 12, sales: 32, status: 'active' },
-  { id: 3, name: 'Organic Coffee Beans', price: 95000, stock: 0, sales: 67, status: 'out_of_stock' },
-  { id: 4, name: 'Wooden Handicraft', price: 120000, stock: 8, sales: 21, status: 'active' },
-];
+const currencyFormatter = new Intl.NumberFormat('id-ID', {
+  style: 'currency',
+  currency: 'IDR'
+});
 
-const orders = [
-  { id: '001', customer: 'Budi S.', product: 'Traditional Batik', amount: 150000, status: 'pending' },
-  { id: '002', customer: 'Siti N.', product: 'Bamboo Basket', amount: 75000, status: 'processing' },
-  { id: '003', customer: 'Ahmad R.', product: 'Coffee Beans', amount: 190000, status: 'completed' },
-];
+const formatCurrency = (value: number) => currencyFormatter.format(value);
+
+const defaultProductForm = {
+  name: '',
+  price: '',
+  stock: '',
+  description: '',
+  category: ''
+};
 
 export default function MSMEDashboard({ onLogout }: MSMEDashboardProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [salesSummary, setSalesSummary] = useState<SalesSummary | null>(null);
+  const [productForm, setProductForm] = useState(defaultProductForm);
+  const [isSubmittingProduct, setIsSubmittingProduct] = useState(false);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(true);
+
+  const loadProducts = async () => {
+    setIsLoadingProducts(true);
+    try {
+      const data = await fetchProducts();
+      setProducts(data);
+    } catch (error) {
+      toast.error('Failed to load products', { description: (error as Error).message });
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
+    loadOrders();
+    loadSalesSummary();
+  }, []);
+
+  const loadOrders = async () => {
+    setIsLoadingOrders(true);
+    try {
+      const data = await fetchOrders();
+      setOrders(data);
+    } catch (error) {
+      toast.error('Failed to load orders', { description: (error as Error).message });
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  };
+
+  const loadSalesSummary = async () => {
+    setIsLoadingSummary(true);
+    try {
+      const summary = await fetchSalesSummary();
+      setSalesSummary(summary);
+    } catch (error) {
+      toast.error('Failed to load sales summary', { description: (error as Error).message });
+    } finally {
+      setIsLoadingSummary(false);
+    }
+  };
 
   const handleAddProduct = () => {
-    toast.success('Product added successfully!');
-    setIsAddProductOpen(false);
+    void submitProduct();
+  };
+
+  const submitProduct = async () => {
+    try {
+      setIsSubmittingProduct(true);
+      const payload = {
+        name: productForm.name.trim(),
+        description: productForm.description.trim(),
+        price: Number(productForm.price),
+        stock: Number(productForm.stock),
+        category: productForm.category.trim()
+      };
+
+      if (!payload.name || !payload.description || !payload.category) {
+        throw new Error('Please fill in all required fields');
+      }
+
+      if (Number.isNaN(payload.price) || Number.isNaN(payload.stock)) {
+        throw new Error('Price and stock must be valid numbers');
+      }
+
+      const product = await createProduct(payload);
+      setProducts((prev) => [...prev, product]);
+      toast.success('Product added successfully!');
+      setIsAddProductOpen(false);
+      setProductForm(defaultProductForm);
+    } catch (error) {
+      toast.error('Unable to add product', { description: (error as Error).message });
+    } finally {
+      setIsSubmittingProduct(false);
+    }
+  };
+
+  const activeProductCount = useMemo(() => products.filter((product) => product.stock > 0).length, [products]);
+
+  const handleFormChange = (field: keyof typeof productForm) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const value = event.target.value;
+    setProductForm((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -105,10 +195,13 @@ export default function MSMEDashboard({ onLogout }: MSMEDashboardProps) {
                 <div className="text-sm text-muted-foreground">Total Sales</div>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </div>
-              <div className="text-2xl mb-1">Rp 12.5M</div>
-              <div className="flex items-center gap-1 text-xs text-green-600">
-                <TrendingUp className="h-3 w-3" />
-                +12.5% from last month
+              <div className="text-2xl mb-1">
+                {isLoadingSummary ? 'Loading...' : formatCurrency(salesSummary?.totalRevenue ?? 0)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {salesSummary?.lastOrderAt
+                  ? `Last order ${new Date(salesSummary.lastOrderAt).toLocaleString('id-ID')}`
+                  : 'No orders yet'}
               </div>
             </CardContent>
           </Card>
@@ -119,10 +212,12 @@ export default function MSMEDashboard({ onLogout }: MSMEDashboardProps) {
                 <div className="text-sm text-muted-foreground">Total Orders</div>
                 <ShoppingBag className="h-4 w-4 text-muted-foreground" />
               </div>
-              <div className="text-2xl mb-1">168</div>
+              <div className="text-2xl mb-1">
+                {isLoadingSummary ? '—' : salesSummary?.ordersCount ?? 0}
+              </div>
               <div className="flex items-center gap-1 text-xs text-green-600">
                 <TrendingUp className="h-3 w-3" />
-                +8.2% from last month
+                Live from backend
               </div>
             </CardContent>
           </Card>
@@ -146,9 +241,9 @@ export default function MSMEDashboard({ onLogout }: MSMEDashboardProps) {
                 <div className="text-sm text-muted-foreground">Active Products</div>
                 <ShoppingBag className="h-4 w-4 text-muted-foreground" />
               </div>
-              <div className="text-2xl mb-1">24</div>
+              <div className="text-2xl mb-1">{isLoadingProducts ? '—' : activeProductCount}</div>
               <div className="text-xs text-muted-foreground">
-                3 out of stock
+                {products.length - activeProductCount} out of stock
               </div>
             </CardContent>
           </Card>
@@ -175,25 +270,67 @@ export default function MSMEDashboard({ onLogout }: MSMEDashboardProps) {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="product-name">Product Name</Label>
-                    <Input id="product-name" placeholder="Enter product name" />
+                    <Input
+                      id="product-name"
+                      placeholder="Enter product name"
+                      value={productForm.name}
+                      onChange={handleFormChange('name')}
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="price">Price (Rp)</Label>
-                      <Input id="price" type="number" placeholder="0" />
+                      <Input
+                        id="price"
+                        type="number"
+                        placeholder="0"
+                        value={productForm.price}
+                        onChange={handleFormChange('price')}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="stock">Stock</Label>
-                      <Input id="stock" type="number" placeholder="0" />
+                      <Input
+                        id="stock"
+                        type="number"
+                        placeholder="0"
+                        value={productForm.stock}
+                        onChange={handleFormChange('stock')}
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Input
+                      id="category"
+                      placeholder="e.g. Handicrafts"
+                      value={productForm.category}
+                      onChange={handleFormChange('category')}
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="description">Description</Label>
-                    <Textarea id="description" placeholder="Product description" />
+                    <Textarea
+                      id="description"
+                      placeholder="Product description"
+                      value={productForm.description}
+                      onChange={handleFormChange('description')}
+                    />
                   </div>
                   <div className="flex gap-3">
-                    <Button onClick={handleAddProduct} className="flex-1">Add Product</Button>
-                    <Button variant="outline" onClick={() => setIsAddProductOpen(false)}>Cancel</Button>
+                    <Button onClick={handleAddProduct} className="flex-1" disabled={isSubmittingProduct}>
+                      {isSubmittingProduct ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        'Add Product'
+                      )}
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsAddProductOpen(false)}>
+                      Cancel
+                    </Button>
                   </div>
                 </div>
               </DialogContent>
@@ -205,37 +342,56 @@ export default function MSMEDashboard({ onLogout }: MSMEDashboardProps) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Product Name</TableHead>
+                    <TableHead>Category</TableHead>
                     <TableHead>Price</TableHead>
                     <TableHead>Stock</TableHead>
-                    <TableHead>Sales</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Added</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell>{product.name}</TableCell>
-                      <TableCell>Rp {product.price.toLocaleString()}</TableCell>
-                      <TableCell>{product.stock}</TableCell>
-                      <TableCell>{product.sales}</TableCell>
-                      <TableCell>
-                        <Badge variant={product.status === 'active' ? 'default' : 'destructive'}>
-                          {product.status === 'active' ? 'Active' : 'Out of Stock'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => toast.success('Edit product')}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => toast.success('Product deleted')}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
+                  {isLoadingProducts ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
+                        Loading products...
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : products.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
+                        No products yet. Add your first product to get started.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    products.map((product) => {
+                      const status = product.stock > 0 ? 'active' : 'out_of_stock';
+                      return (
+                        <TableRow key={product.id}>
+                          <TableCell>{product.name}</TableCell>
+                          <TableCell>{product.category}</TableCell>
+                          <TableCell>{formatCurrency(product.price)}</TableCell>
+                          <TableCell>{product.stock}</TableCell>
+                          <TableCell>
+                            <Badge variant={status === 'active' ? 'default' : 'destructive'}>
+                              {status === 'active' ? 'Active' : 'Out of Stock'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{new Date(product.createdAt).toLocaleDateString('id-ID')}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="icon" onClick={() => toast.success('Edit product')}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => toast.success('Product deleted')}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -249,40 +405,49 @@ export default function MSMEDashboard({ onLogout }: MSMEDashboardProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {orders.map((order) => (
-                <div
-                  key={order.id}
-                  className="flex items-center justify-between p-4 rounded-lg border border-border hover:shadow-md transition-shadow"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-1">
-                      <p className="text-sm">Order #{order.id}</p>
-                      <Badge
-                        variant={
-                          order.status === 'completed'
-                            ? 'default'
-                            : order.status === 'processing'
-                            ? 'secondary'
-                            : 'outline'
-                        }
-                      >
-                        {order.status}
-                      </Badge>
+              {isLoadingOrders ? (
+                <p className="text-sm text-muted-foreground">Loading orders...</p>
+              ) : orders.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No orders yet.</p>
+              ) : (
+                orders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="flex items-center justify-between p-4 rounded-lg border border-border hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-1">
+                        <p className="text-sm">Order #{order.id.slice(0, 8)}</p>
+                        <Badge
+                          variant={
+                            order.status === 'completed'
+                              ? 'default'
+                              : order.status === 'processing'
+                              ? 'secondary'
+                              : 'outline'
+                          }
+                        >
+                          {order.status}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {order.customerName} • {order.customerEmail}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {order.items.length} item(s)
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {order.customer} • {order.product}
-                    </p>
+                    <div className="text-right">
+                      <p className="text-sm">{formatCurrency(order.total)}</p>
+                      {order.status !== 'completed' && (
+                        <Button size="sm" variant="link" className="h-auto p-0 text-xs">
+                          Process Order
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm">Rp {order.amount.toLocaleString()}</p>
-                    {order.status !== 'completed' && (
-                      <Button size="sm" variant="link" className="h-auto p-0 text-xs">
-                        Process Order
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

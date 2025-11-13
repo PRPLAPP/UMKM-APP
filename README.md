@@ -7,13 +7,40 @@
   ## Frontend
 
   1. Run `npm install` in the project root.
-  2. Run `npm run dev` to start Vite.
+  2. Run `npm run dev` to start Vite (expects the backend on `http://localhost:5000` via the `/api` proxy in dev mode).
+  3. Optional: set `VITE_API_BASE_URL` before `npm run build` if the API lives elsewhere.
 
   ## Backend
 
   1. `cd server && npm install` (first time only).
-  2. Copy `server/.env.example` to `server/.env` and adjust `API_PORT` if needed.
-  3. Run `npm run dev:api` from the project root (or `npm run dev` inside `server/`) to boot the Fastify server with hot reload via `tsx`.
+  2. Copy `server/.env.example` to `server/.env` and set `API_PORT` plus `DATABASE_URL` (defaults assume Postgres running on `localhost:5432` with user/password/db `umkm`).
+  3. Make sure Postgres is running, then run `npm run prisma:migrate` inside `server/` to apply migrations.
+  4. (Optional) Run `npm run db:seed` inside `server/` to populate a couple of sample products.
+  5. Run `npm run dev:api` from the project root (or `npm run dev` inside `server/`) to boot the Fastify server with hot reload via `tsx`.
 
-  The API currently exposes `GET /health`, returning uptime and a timestamp so the frontend (or monitoring) can verify connectivity. Add new routes under `server/src/routes` and register them in `server/src/server.ts`.
+  ### Available endpoints
+
+  - `GET /health` – uptime/status probe.
+  - `GET /products` – list demo catalog items.
+  - `POST /products` – create a product (`name`, `description`, `price`, `stock`, `category`).
+  - `GET /orders` – list submitted orders.
+  - `POST /orders` – create an order (`customerName`, `customerEmail`, `items[{ productId, quantity }]`); totals are computed server-side.
+  - `GET /reports/sales` – aggregated sales totals backed by Postgres.
+
+  Routes live in `server/src/routes`, business logic in `server/src/services`, and persistence is handled by Prisma + Postgres (see `server/prisma/schema.prisma`). Update the schema and run `npm run prisma:migrate` any time the data model changes.
+
+  The Vite dev server proxies `/api/*` to the Fastify port so React components can call e.g. `fetch('/api/products')` without worrying about CORS during local development. Make sure both `npm run dev` and `npm run dev:api` are running (plus Postgres) to see live data inside the MSME dashboard.
+
+  ## Docker workflow
+
+  1. Copy `server/.env.example` to `server/.env` (Compose reads the same values).
+  2. Run `docker compose up --build`.
+  3. Visit `http://localhost:3000` for the frontend; the API is available at `http://localhost:5050`, and Postgres lives inside the `db` service.
+  4. Seed sample data any time with `docker compose exec api npm run db:seed`.
+
+  The compose stack includes:
+
+  - `db` – Postgres 16 with a persisted volume.
+  - `api` – Fastify server (build + migrate on startup) exposed on port 5000.
+  - `web` – Static build served by Nginx on port 3000 (built with `VITE_API_BASE_URL=http://localhost:5000` by default).
   
