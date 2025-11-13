@@ -5,23 +5,21 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Mountain, Eye, EyeOff } from 'lucide-react';
+import { Mountain, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import ThemeToggle from '../ThemeToggle';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { useAuth } from '@/hooks/useAuth';
 
-interface LoginPageProps {
-  onLogin: (role: 'villager' | 'msme' | 'admin') => void;
-}
-
-export default function LoginPage({ onLogin }: LoginPageProps) {
+export default function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'villager' | 'msme' | 'admin'>('villager');
   const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState<'villager' | 'msme' | 'admin'>('villager');
+  const { login, authLoading } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
@@ -29,10 +27,15 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       return;
     }
 
-    // Demo login
-    toast.success('Welcome back!');
-    onLogin(role);
-    navigate(`/dashboard/${role}`);
+    try {
+      const user = await login({ email, password });
+      toast.success('Welcome back!');
+      navigate(`/dashboard/${user.role}`);
+    } catch (error) {
+      toast.error('Unable to sign in', {
+        description: error instanceof Error ? error.message : 'Please try again.'
+      });
+    }
   };
 
   return (
@@ -113,8 +116,15 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                   </Link>
                 </div>
 
-                <Button type="submit" className="w-full">
-                  Sign In
+                <Button type="submit" className="w-full" disabled={authLoading}>
+                  {authLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing In...
+                    </>
+                  ) : (
+                    'Sign In'
+                  )}
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">

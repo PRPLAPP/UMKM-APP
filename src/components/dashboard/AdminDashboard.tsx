@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Bell, LogOut, Menu, X, Users, Store, TrendingUp, Activity, CheckCircle, XCircle } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Bell, LogOut, Menu, X, Users, Store, Activity, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -9,64 +9,58 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import ThemeToggle from '../ThemeToggle';
 import { toast } from 'sonner@2.0.3';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useAuth } from '@/hooks/useAuth';
+import { fetchAdminDashboard, type AdminDashboardResponse } from '@/lib/api';
 
 interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-const growthData = [
-  { month: 'Jan', users: 120, msmes: 15, transactions: 245 },
-  { month: 'Feb', users: 180, msmes: 22, transactions: 389 },
-  { month: 'Mar', users: 240, msmes: 28, transactions: 512 },
-  { month: 'Apr', users: 310, msmes: 35, transactions: 678 },
-  { month: 'May', users: 405, msmes: 42, transactions: 892 },
-  { month: 'Jun', users: 520, msmes: 51, transactions: 1124 },
-];
-
-const verificationRequests = [
-  { id: 1, name: 'Toko Berkah', type: 'MSME', category: 'Grocery', date: '2 hours ago', status: 'pending' },
-  { id: 2, name: 'Warung Makan Sederhana', type: 'MSME', category: 'Food', date: '5 hours ago', status: 'pending' },
-  { id: 3, name: 'Kerajinan Tangan', type: 'MSME', category: 'Handicrafts', date: '1 day ago', status: 'pending' },
-];
-
-const villageData = {
-  population: [
-    { category: 'Total Population', value: '12,450', change: '+2.3%' },
-    { category: 'Households', value: '3,125', change: '+1.8%' },
-    { category: 'Working Age', value: '7,890', change: '+3.1%' },
-    { category: 'Students', value: '2,340', change: '+4.2%' },
-  ],
-  msmes: [
-    { category: 'Food & Beverage', count: 18 },
-    { category: 'Handicrafts', count: 12 },
-    { category: 'Grocery', count: 8 },
-    { category: 'Services', count: 13 },
-  ],
-};
-
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [dashboardData, setDashboardData] = useState<AdminDashboardResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { token, user } = useAuth();
+
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+    setLoading(true);
+
+    fetchAdminDashboard(token)
+      .then((data) => {
+        if (active) setDashboardData(data);
+      })
+      .catch((error) => {
+        toast.error('Unable to load admin metrics', {
+          description: error instanceof Error ? error.message : undefined
+        });
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [token]);
 
   const handleApprove = (name: string) => {
-    toast.success(`${name} has been approved!`);
+    toast.success(`${name} approved (mock)`);
   };
 
   const handleReject = (name: string) => {
-    toast.error(`${name} has been rejected!`);
+    toast.error(`${name} rejected (mock)`);
   };
+
+  const populationEntries = dashboardData?.population.entries ?? [];
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
+            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
             <h1 className="text-xl">Karya Desa - Admin</h1>
@@ -79,7 +73,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <span className="absolute top-1 right-1 h-2 w-2 bg-destructive rounded-full" />
             </Button>
             <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-primary/10 text-primary">AD</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-primary">
+                {user?.name?.slice(0, 2).toUpperCase() ?? 'AD'}
+              </AvatarFallback>
             </Avatar>
             <Button variant="ghost" size="icon" onClick={onLogout}>
               <LogOut className="h-5 w-5" />
@@ -88,123 +84,44 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
-        {/* Welcome Section */}
         <div className="space-y-2">
           <h2 className="text-3xl">Admin Dashboard</h2>
           <p className="text-muted-foreground">Monitor and manage your village community</p>
         </div>
 
-        {/* Overview Analytics */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-muted-foreground">Total Users</div>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="text-2xl mb-1">10,245</div>
-              <div className="flex items-center gap-1 text-xs text-green-600">
-                <TrendingUp className="h-3 w-3" />
-                +15.2% this month
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-muted-foreground">Active MSMEs</div>
-                <Store className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="text-2xl mb-1">51</div>
-              <div className="flex items-center gap-1 text-xs text-green-600">
-                <TrendingUp className="h-3 w-3" />
-                +9 this month
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-muted-foreground">Total Transactions</div>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="text-2xl mb-1">1,124</div>
-              <div className="flex items-center gap-1 text-xs text-green-600">
-                <TrendingUp className="h-3 w-3" />
-                +23.8% this month
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-muted-foreground">Pending Requests</div>
-                <Bell className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="text-2xl mb-1">3</div>
-              <div className="text-xs text-muted-foreground">
-                Awaiting verification
-              </div>
-            </CardContent>
-          </Card>
+          <MetricCard label="Total Users" icon={<Users className="h-4 w-4" />} value={dashboardData?.stats.totalUsers} />
+          <MetricCard label="Active MSMEs" icon={<Store className="h-4 w-4" />} value={dashboardData?.stats.activeMsmes} />
+          <MetricCard label="Total Orders" icon={<Activity className="h-4 w-4" />} value={dashboardData?.stats.totalOrders} />
+          <MetricCard label="Pending Requests" icon={<Bell className="h-4 w-4" />} value={dashboardData?.stats.pendingRequests} helper="Awaiting verification" />
         </div>
 
-        {/* Growth Chart */}
         <Card>
           <CardHeader>
             <CardTitle>Growth Overview</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={growthData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis
-                    dataKey="month"
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
-                  />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="users"
-                    stroke="hsl(var(--chart-1))"
-                    strokeWidth={2}
-                    name="Users"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="msmes"
-                    stroke="hsl(var(--chart-2))"
-                    strokeWidth={2}
-                    name="MSMEs"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="transactions"
-                    stroke="hsl(var(--chart-3))"
-                    strokeWidth={2}
-                    name="Transactions"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              {loading ? (
+                <SkeletonMessage />
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={dashboardData?.growth ?? []}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} allowDecimals={false} />
+                    <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
+                    <Line type="monotone" dataKey="users" stroke="hsl(var(--chart-1))" strokeWidth={2} name="Users" />
+                    <Line type="monotone" dataKey="msmes" stroke="hsl(var(--chart-2))" strokeWidth={2} name="MSMEs" />
+                    <Line type="monotone" dataKey="orders" stroke="hsl(var(--chart-3))" strokeWidth={2} name="Orders" />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Verification Requests */}
         <Card>
           <CardHeader>
             <CardTitle>Verification Requests</CardTitle>
@@ -215,54 +132,57 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Business Name</TableHead>
-                    <TableHead>Type</TableHead>
+                    <TableHead>Owner</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Submitted</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {verificationRequests.map((request) => (
-                    <TableRow key={request.id}>
-                      <TableCell>{request.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{request.type}</Badge>
-                      </TableCell>
-                      <TableCell>{request.category}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {request.date}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="default"
-                            className="gap-1"
-                            onClick={() => handleApprove(request.name)}
-                          >
-                            <CheckCircle className="h-3 w-3" />
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="gap-1"
-                            onClick={() => handleReject(request.name)}
-                          >
-                            <XCircle className="h-3 w-3" />
-                            Reject
-                          </Button>
-                        </div>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-sm text-muted-foreground">
+                        Loading requests...
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : dashboardData?.verificationRequests.length ? (
+                    dashboardData.verificationRequests.map((request) => (
+                      <TableRow key={request.id}>
+                        <TableCell>{request.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{request.owner}</Badge>
+                        </TableCell>
+                        <TableCell>{request.category}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {new Date(request.submittedAt).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" variant="default" className="gap-1" onClick={() => handleApprove(request.name)}>
+                              <CheckCircle className="h-3 w-3" />
+                              Approve
+                            </Button>
+                            <Button size="sm" variant="destructive" className="gap-1" onClick={() => handleReject(request.name)}>
+                              <XCircle className="h-3 w-3" />
+                              Reject
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-sm text-muted-foreground">
+                        No pending requests.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
           </CardContent>
         </Card>
 
-        {/* Village Data Management */}
         <Card>
           <CardHeader>
             <CardTitle>Village Data Management</CardTitle>
@@ -278,16 +198,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
               <TabsContent value="population" className="space-y-4">
                 <div className="grid sm:grid-cols-2 gap-4">
-                  {villageData.population.map((item, index) => (
-                    <div
-                      key={index}
-                      className="p-4 rounded-lg border border-border hover:shadow-md transition-shadow"
-                    >
+                  {populationEntries.map((item) => (
+                    <div key={item.category} className="p-4 rounded-lg border border-border hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm text-muted-foreground mb-1">
-                            {item.category}
-                          </p>
+                          <p className="text-sm text-muted-foreground mb-1">{item.category}</p>
                           <p className="text-2xl">{item.value}</p>
                         </div>
                         <Badge variant="secondary" className="text-xs">
@@ -301,22 +216,23 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
               <TabsContent value="msmes" className="space-y-4">
                 <div className="space-y-3">
-                  {villageData.msmes.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-4 rounded-lg border border-border hover:shadow-md transition-shadow"
-                    >
-                      <p className="text-sm">{item.category}</p>
-                      <Badge>{item.count} businesses</Badge>
-                    </div>
-                  ))}
+                  {dashboardData?.msmeCategories.length ? (
+                    dashboardData.msmeCategories.map((item) => (
+                      <div key={item.category} className="flex items-center justify-between p-4 rounded-lg border border-border hover:shadow-md transition-shadow">
+                        <p className="text-sm">{item.category}</p>
+                        <Badge>{item.count} businesses</Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No MSME categories yet.</p>
+                  )}
                 </div>
               </TabsContent>
 
               <TabsContent value="events" className="space-y-4">
                 <div className="text-center py-12 text-muted-foreground">
-                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No upcoming events</p>
+                  <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Manage upcoming events from the community module.</p>
                   <Button variant="outline" className="mt-4">
                     Create Event
                   </Button>
@@ -326,7 +242,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <TabsContent value="reports" className="space-y-4">
                 <div className="text-center py-12 text-muted-foreground">
                   <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Generate custom reports</p>
+                  <p>Generate custom reports from transactions and MSME performance.</p>
                   <Button variant="outline" className="mt-4">
                     Generate Report
                   </Button>
@@ -340,7 +256,31 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   );
 }
 
-function Calendar({ className }: { className?: string }) {
+function MetricCard({ label, icon, value, helper }: { label: string; icon: React.ReactNode; value?: number; helper?: string }) {
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-sm text-muted-foreground">{label}</div>
+          {icon}
+        </div>
+        <div className="text-2xl mb-1">{value ?? '—'}</div>
+        {helper ? <div className="text-xs text-muted-foreground">{helper}</div> : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SkeletonMessage() {
+  return (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      Loading chart...
+    </div>
+  );
+}
+
+function CalendarIcon({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

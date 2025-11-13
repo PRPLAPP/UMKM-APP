@@ -5,10 +5,11 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { Mountain, Eye, EyeOff } from 'lucide-react';
+import { Mountain, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import ThemeToggle from '../ThemeToggle';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -20,8 +21,9 @@ export default function RegisterPage() {
     role: 'villager' as 'villager' | 'msme' | 'admin',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const { register, authLoading } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
@@ -39,9 +41,20 @@ export default function RegisterPage() {
       return;
     }
 
-    // Demo registration
-    toast.success('Account created successfully! Please sign in.');
-    navigate('/login');
+    try {
+      const user = await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role
+      });
+      toast.success('Account created successfully!');
+      navigate(`/dashboard/${user.role}`);
+    } catch (error) {
+      toast.error('Unable to create account', {
+        description: error instanceof Error ? error.message : 'Please try again.'
+      });
+    }
   };
 
   return (
@@ -157,8 +170,15 @@ export default function RegisterPage() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full">
-                  Create Account
+                <Button type="submit" className="w-full" disabled={authLoading}>
+                  {authLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Account'
+                  )}
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">

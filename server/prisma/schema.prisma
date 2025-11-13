@@ -13,6 +13,24 @@ enum OrderStatus {
   completed
 }
 
+enum UserRole {
+  villager
+  msme
+  admin
+}
+
+enum MsmeStatus {
+  pending
+  approved
+  rejected
+}
+
+enum NewsType {
+  event
+  business
+  announcement
+}
+
 model Product {
   id          String      @id @default(uuid())
   name        String
@@ -32,6 +50,8 @@ model Order {
   total         Float
   createdAt     DateTime    @default(now())
   items         OrderItem[]
+  userId        String?
+  user          User?       @relation(fields: [userId], references: [id])
 }
 
 model OrderItem {
@@ -41,4 +61,47 @@ model OrderItem {
   productId String
   order     Order   @relation(fields: [orderId], references: [id])
   orderId   String
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         UserRole  @default(msme)
+  createdAt    DateTime  @default(now())
+  orders       Order[]
+  msmeProfile  MsmeProfile?
+}
+
+model MsmeProfile {
+  id          String     @id @default(uuid())
+  userId      String     @unique
+  storeName   String
+  category    String
+  description String
+  location    String
+  distanceKm  Float
+  rating      Float      @default(4.5)
+  status      MsmeStatus @default(pending)
+  createdAt   DateTime   @default(now())
+  user        User       @relation(fields: [userId], references: [id])
+}
+
+model NewsItem {
+  id          String    @id @default(uuid())
+  title       String
+  summary     String
+  type        NewsType
+  publishedAt DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+}
+
+model TourismSpot {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  imageUrl    String
+  location    String
+  createdAt   DateTime @default(now())
 }

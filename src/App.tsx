@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './components/landing/LandingPage';
 import LoginPage from './components/auth/LoginPage';
@@ -8,62 +8,46 @@ import VillagerDashboard from './components/dashboard/VillagerDashboard';
 import MSMEDashboard from './components/dashboard/MSMEDashboard';
 import AdminDashboard from './components/dashboard/AdminDashboard';
 import { Toaster } from './components/ui/sonner';
+import { useAuth } from './hooks/useAuth';
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<'villager' | 'msme' | 'admin' | null>(null);
+  const { user, isAuthenticated, initializing, logout } = useAuth();
 
-  const handleLogin = (role: 'villager' | 'msme' | 'admin') => {
-    setIsAuthenticated(true);
-    setUserRole(role);
-  };
+  if (initializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Loading your workspace...</p>
+      </div>
+    );
+  }
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUserRole(null);
-  };
+  const protectedRoute = (role: 'villager' | 'msme' | 'admin', Component: React.ComponentType<{ onLogout: () => void }>) =>
+    isAuthenticated && user?.role === role ? (
+      <Component onLogout={logout} />
+    ) : (
+      <Navigate to="/login" replace />
+    );
 
   return (
     <Router>
       <div className="min-h-screen">
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route 
-            path="/login" 
-            element={<LoginPage onLogin={handleLogin} />} 
-          />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           
           <Route
             path="/dashboard/villager"
-            element={
-              isAuthenticated && userRole === 'villager' ? (
-                <VillagerDashboard onLogout={handleLogout} />
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
+            element={protectedRoute('villager', VillagerDashboard)}
           />
           <Route
             path="/dashboard/msme"
-            element={
-              isAuthenticated && userRole === 'msme' ? (
-                <MSMEDashboard onLogout={handleLogout} />
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
+            element={protectedRoute('msme', MSMEDashboard)}
           />
           <Route
             path="/dashboard/admin"
-            element={
-              isAuthenticated && userRole === 'admin' ? (
-                <AdminDashboard onLogout={handleLogout} />
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
+            element={protectedRoute('admin', AdminDashboard)}
           />
         </Routes>
         <Toaster />

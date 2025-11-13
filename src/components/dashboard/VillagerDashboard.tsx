@@ -1,40 +1,51 @@
-import React, { useState } from 'react';
-import { Bell, MessageCircle, LogOut, Menu, X, MapPin, Calendar, Store, TrendingUp } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Bell, MessageCircle, LogOut, Menu, X, MapPin, Calendar, Store, TrendingUp, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import ThemeToggle from '../ThemeToggle';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { useAuth } from '@/hooks/useAuth';
+import { fetchCommunityHome, type CommunityHomeResponse } from '@/lib/api';
+import { toast } from 'sonner@2.0.3';
 
 interface VillagerDashboardProps {
   onLogout: () => void;
 }
 
-const newsItems = [
-  { id: 1, title: 'Village Festival Next Week', date: '2 hours ago', type: 'event' },
-  { id: 2, title: 'New MSME Added: Fresh Produce', date: '1 day ago', type: 'business' },
-  { id: 3, title: 'Community Meeting on Saturday', date: '2 days ago', type: 'announcement' },
-];
-
-const nearbyMSMEs = [
-  { id: 1, name: 'Warung Sari', category: 'Food & Beverage', distance: '0.5 km', rating: 4.8 },
-  { id: 2, name: 'Toko Sejahtera', category: 'Grocery', distance: '1.2 km', rating: 4.5 },
-  { id: 3, name: 'Kerajinan Desa', category: 'Handicrafts', distance: '0.8 km', rating: 4.9 },
-];
-
-const tourismSpots = [
-  { id: 1, name: 'Air Terjun Indah', image: 'https://images.unsplash.com/photo-1760292424045-6c3669699efd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aWxsYWdlJTIwY29tbXVuaXR5JTIwZGlnaXRhbHxlbnwxfHx8fDE3NjMwMjMxNzR8MA&ixlib=rb-4.1.0&q=80&w=1080' },
-  { id: 2, name: 'Sawah Terrace', image: 'https://images.unsplash.com/photo-1737913785137-c2a957ae7565?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYXJrZXRwbGFjZSUyMGxvY2FsJTIwYnVzaW5lc3N8ZW58MXx8fHwxNzYzMDIzMTc1fDA&ixlib=rb-4.1.0&q=80&w=1080' },
-  { id: 3, name: 'Kampung Tradisi', image: 'https://images.unsplash.com/photo-1576267423048-15c0040fec78?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWFtJTIwY29sbGFib3JhdGlvbiUyMGhhcHB5fGVufDF8fHx8MTc2Mjk4OTA3Nnww&ixlib=rb-4.1.0&q=80&w=1080' },
-];
-
 export default function VillagerDashboard({ onLogout }: VillagerDashboardProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [data, setData] = useState<CommunityHomeResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+
+    fetchCommunityHome()
+      .then((payload) => {
+        if (active) setData(payload);
+      })
+      .catch((error) => {
+        toast.error('Unable to load community feed', {
+          description: error instanceof Error ? error.message : undefined
+        });
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const stats = data?.stats;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
@@ -59,7 +70,9 @@ export default function VillagerDashboard({ onLogout }: VillagerDashboardProps) 
               <MessageCircle className="h-5 w-5" />
             </Button>
             <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-primary/10 text-primary">JD</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-primary">
+                {user?.name?.slice(0, 2).toUpperCase() ?? 'KD'}
+              </AvatarFallback>
             </Avatar>
             <Button variant="ghost" size="icon" onClick={onLogout}>
               <LogOut className="h-5 w-5" />
@@ -68,148 +81,111 @@ export default function VillagerDashboard({ onLogout }: VillagerDashboardProps) 
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
-        {/* Welcome Section */}
         <div className="space-y-2">
-          <h2 className="text-3xl">Hello, John 👋</h2>
+          <h2 className="text-3xl">Hello, {user?.name ?? 'Neighbor'} 👋</h2>
           <p className="text-muted-foreground">Welcome back to your village community</p>
         </div>
 
-        {/* Quick Access Cards */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Upcoming Events</div>
-                <div className="text-2xl">5</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-green-500/10 flex items-center justify-center">
-                <Store className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Local Businesses</div>
-                <div className="text-2xl">28</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                <MapPin className="h-6 w-6 text-amber-600" />
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Tourism Spots</div>
-                <div className="text-2xl">12</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-purple-600" />
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Active Members</div>
-                <div className="text-2xl">342</div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard label="Upcoming Events" icon={<Calendar className="h-6 w-6 text-blue-600" />} value={stats?.eventsCount} color="blue" />
+          <StatCard label="Local Businesses" icon={<Store className="h-6 w-6 text-green-600" />} value={stats?.businessesCount} color="green" />
+          <StatCard label="Tourism Spots" icon={<MapPin className="h-6 w-6 text-amber-600" />} value={stats?.tourismSpotsCount} color="amber" />
+          <StatCard label="Active Members" icon={<TrendingUp className="h-6 w-6 text-purple-600" />} value={stats?.activeMembers} color="purple" />
         </div>
 
-        {/* Main Grid */}
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Left Column - News & Events */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Local News */}
             <Card>
               <CardHeader>
                 <CardTitle>Local News & Updates</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {newsItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-                  >
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Calendar className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="truncate">{item.title}</p>
-                        <Badge variant="secondary" className="flex-shrink-0 text-xs">
-                          {item.type}
-                        </Badge>
+                {loading ? (
+                  <LoadingMessage message="Loading news..." />
+                ) : data?.news.length ? (
+                  data.news.map((item) => (
+                    <div key={item.id} className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Calendar className="h-5 w-5 text-primary" />
                       </div>
-                      <p className="text-sm text-muted-foreground">{item.date}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="truncate">{item.title}</p>
+                          <Badge variant="secondary" className="flex-shrink-0 text-xs capitalize">
+                            {item.type}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{item.summary}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(item.publishedAt).toLocaleString()}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No updates yet.</p>
+                )}
               </CardContent>
             </Card>
 
-            {/* Tourism Spots */}
             <Card>
               <CardHeader>
                 <CardTitle>Discover Tourism Spots</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid sm:grid-cols-3 gap-4">
-                  {tourismSpots.map((spot) => (
-                    <div key={spot.id} className="group cursor-pointer">
-                      <div className="aspect-video rounded-lg overflow-hidden mb-2">
-                        <ImageWithFallback
-                          src={spot.image}
-                          alt={spot.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        />
+                {loading ? (
+                  <LoadingMessage message="Loading destinations..." />
+                ) : (
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    {data?.tourismSpots.map((spot) => (
+                      <div key={spot.id} className="group cursor-pointer">
+                        <div className="aspect-video rounded-lg overflow-hidden mb-2">
+                          <ImageWithFallback
+                            src={spot.imageUrl}
+                            alt={spot.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                        </div>
+                        <p className="text-sm font-medium">{spot.name}</p>
+                        <p className="text-xs text-muted-foreground">{spot.location}</p>
                       </div>
-                      <p className="text-sm">{spot.name}</p>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Right Column - Nearby MSMEs */}
           <div>
             <Card>
               <CardHeader>
                 <CardTitle>Nearby MSMEs</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {nearbyMSMEs.map((msme) => (
-                  <div
-                    key={msme.id}
-                    className="p-4 rounded-lg border border-border hover:shadow-md transition-shadow cursor-pointer"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <p className="text-sm mb-1">{msme.name}</p>
-                        <p className="text-xs text-muted-foreground">{msme.category}</p>
+                {loading ? (
+                  <LoadingMessage message="Loading MSMEs..." />
+                ) : data?.msmes.length ? (
+                  data.msmes.map((msme) => (
+                    <div key={msme.id} className="p-4 rounded-lg border border-border hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="text-sm mb-1">{msme.name}</p>
+                          <p className="text-xs text-muted-foreground">{msme.category}</p>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          ⭐ {msme.rating.toFixed(1)}
+                        </Badge>
                       </div>
-                      <Badge variant="secondary" className="text-xs">
-                        ⭐ {msme.rating}
-                      </Badge>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        {msme.distanceKm.toFixed(1)} km • {msme.location}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <MapPin className="h-3 w-3" />
-                      {msme.distance}
-                    </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No MSMEs nearby yet.</p>
+                )}
                 <Button variant="outline" className="w-full">
                   View All Businesses
                 </Button>
@@ -218,6 +194,36 @@ export default function VillagerDashboard({ onLogout }: VillagerDashboardProps) 
           </div>
         </div>
       </main>
+    </div>
+  );
+}
+
+function StatCard({ label, icon, value, color }: { label: string; icon: React.ReactNode; value?: number; color: 'blue' | 'green' | 'amber' | 'purple' }) {
+  const colorMap = {
+    blue: 'bg-blue-500/10',
+    green: 'bg-green-500/10',
+    amber: 'bg-amber-500/10',
+    purple: 'bg-purple-500/10'
+  };
+
+  return (
+    <Card className="hover:shadow-md transition-shadow cursor-pointer">
+      <CardContent className="p-6 flex items-center gap-4">
+        <div className={`h-12 w-12 rounded-xl ${colorMap[color]} flex items-center justify-center`}>{icon}</div>
+        <div>
+          <div className="text-sm text-muted-foreground">{label}</div>
+          <div className="text-2xl">{value ?? '—'}</div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LoadingMessage({ message }: { message: string }) {
+  return (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      {message}
     </div>
   );
 }

@@ -1,12 +1,17 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import jwt from "@fastify/jwt";
+import type { FastifyReply, FastifyRequest } from "fastify";
 
 import { env } from "./config/env.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerProductRoutes } from "./routes/products.js";
 import { registerOrderRoutes } from "./routes/orders.js";
 import { registerReportRoutes } from "./routes/reports.js";
+import { registerAuthRoutes } from "./routes/auth.js";
+import { registerCommunityRoutes } from "./routes/community.js";
+import { registerAdminRoutes } from "./routes/admin.js";
 import { prisma } from "./db/client.js";
 
 const app = Fastify({
@@ -14,10 +19,25 @@ const app = Fastify({
 });
 
 await app.register(cors, { origin: true });
+await app.register(jwt, { secret: env.JWT_SECRET });
+
+app.decorate(
+  "authenticate",
+  async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      await request.jwtVerify();
+    } catch (err) {
+      return reply.send(err);
+    }
+  }
+);
 await registerHealthRoutes(app);
 await registerProductRoutes(app);
 await registerOrderRoutes(app);
 await registerReportRoutes(app);
+await registerAuthRoutes(app);
+await registerCommunityRoutes(app);
+await registerAdminRoutes(app);
 
 app.addHook("onClose", async () => {
   await prisma.$disconnect();
