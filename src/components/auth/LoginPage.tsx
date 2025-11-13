@@ -4,7 +4,6 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Mountain, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import ThemeToggle from '../ThemeToggle';
@@ -16,7 +15,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState<'villager' | 'msme' | 'admin'>('villager');
   const { login, authLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,7 +27,7 @@ export default function LoginPage() {
 
     try {
       const user = await login({ email, password });
-      toast.success('Welcome back!');
+      toast.success(`Welcome back, ${user.name}!`);
       navigate(`/dashboard/${user.role}`);
     } catch (error) {
       toast.error('Unable to sign in', {
@@ -61,19 +59,10 @@ export default function LoginPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="role">I am a</Label>
-                  <Select value={role} onValueChange={(value: any) => setRole(value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="villager">Villager</SelectItem>
-                      <SelectItem value="msme">MSME Owner</SelectItem>
-                      <SelectItem value="admin">Administrator</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  Sign in with your credentials. We’ll send you to the correct dashboard based on your
+                  account role.
+                </p>
 
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>

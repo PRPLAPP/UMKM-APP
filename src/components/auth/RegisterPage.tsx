@@ -48,7 +48,7 @@ export default function RegisterPage() {
         password: formData.password,
         role: formData.role
       });
-      toast.success('Account created successfully!');
+      toast.success(`Account created successfully! Welcome, ${user.name}.`);
       navigate(`/dashboard/${user.role}`);
     } catch (error) {
       toast.error('Unable to create account', {
