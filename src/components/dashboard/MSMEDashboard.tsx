@@ -15,12 +15,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { NotificationMenu } from '../notifications/NotificationMenu';
 import {
   createProduct,
+  createOrder,
   deleteProduct,
   fetchOrders,
   fetchMsmeProfile,
   fetchProducts,
   fetchSalesSummary,
   updateMsmeProfile,
+  updateOrderStatus,
   updateProduct,
   type Order,
   type Product,
@@ -347,6 +349,26 @@ export default function MSMEDashboard({ onLogout }: MSMEDashboardProps) {
       toast.error('Unable to create order', { description: (error as Error).message });
     } finally {
       setIsSubmittingOrder(false);
+    }
+  };
+
+  const getNextStatus = (status: Order['status']) => {
+    if (status === 'pending') return 'processing';
+    if (status === 'processing') return 'completed';
+    return null;
+  };
+
+  const handleAdvanceOrderStatus = async (order: Order) => {
+    if (!token) return;
+    const nextStatus = getNextStatus(order.status);
+    if (!nextStatus) return;
+    try {
+      const updated = await updateOrderStatus(order.id, nextStatus, token);
+      setOrders((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+      toast.success(`Order marked as ${updated.status}`);
+      loadSalesSummary();
+    } catch (error) {
+      toast.error('Unable to update order', { description: (error as Error).message });
     }
   };
 
@@ -745,9 +767,9 @@ export default function MSMEDashboard({ onLogout }: MSMEDashboardProps) {
                     </div>
                     <div className="text-right">
                       <p className="text-sm">{formatCurrency(order.total)}</p>
-                      {order.status !== 'completed' && (
-                        <Button size="sm" variant="link" className="h-auto p-0 text-xs">
-                          Process Order
+                      {getNextStatus(order.status) && (
+                        <Button size="sm" variant="link" className="h-auto p-0 text-xs" onClick={() => handleAdvanceOrderStatus(order)}>
+                          Mark {getNextStatus(order.status)}
                         </Button>
                       )}
                     </div>

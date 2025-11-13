@@ -1,5 +1,5 @@
 import { prisma } from "../db/client.js";
-import { orderInputSchema, type Order } from "../schemas/order.js";
+import { orderInputSchema, orderStatusSchema, type Order } from "../schemas/order.js";
 
 export async function getOrders(ownerId?: string): Promise<Order[]> {
   const orders = await prisma.order.findMany({
@@ -67,6 +67,33 @@ export async function createOrder(payload: unknown, userId?: string): Promise<Or
     total: order.total,
     createdAt: order.createdAt.toISOString(),
     items: order.items.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity
+    }))
+  };
+}
+
+export async function updateOrderStatus(orderId: string, ownerId: string, status: string): Promise<Order> {
+  const parsedStatus = orderStatusSchema.parse(status);
+  const order = await prisma.order.findUnique({ where: { id: orderId }, include: { items: true } });
+  if (!order || order.userId !== ownerId) {
+    throw new Error("Order not found");
+  }
+
+  const updated = await prisma.order.update({
+    where: { id: orderId },
+    data: { status: parsedStatus },
+    include: { items: true }
+  });
+
+  return {
+    id: updated.id,
+    customerName: updated.customerName,
+    customerEmail: updated.customerEmail,
+    status: updated.status,
+    total: updated.total,
+    createdAt: updated.createdAt.toISOString(),
+    items: updated.items.map((item) => ({
       productId: item.productId,
       quantity: item.quantity
     }))

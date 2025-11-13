@@ -235,6 +235,17 @@ export function createOrder(payload: OrderPayload, token: string) {
   }).then((res) => handleResponse<Order>(res));
 }
 
+export function updateOrderStatus(id: string, status: Order["status"], token: string) {
+  return fetch(`${API_BASE}/orders/${id}/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify({ status })
+  }).then((res) => handleResponse<Order>(res));
+}
+
 export function fetchSalesSummary() {
   return fetch(`${API_BASE}/reports/sales`).then((res) => handleResponse<SalesSummary>(res));
 }

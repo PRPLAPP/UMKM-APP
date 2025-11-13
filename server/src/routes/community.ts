@@ -36,18 +36,6 @@ export async function registerCommunityRoutes(app: FastifyInstance) {
       return reply.status(400).send({ message: (error as Error).message });
     }
   });
-  app.delete("/community/news/:id", { preHandler: [app.authenticate] }, async (request, reply) => {
-    const { id } = request.params as { id: string };
-    try {
-      await deleteNewsItem(id, request.user.role);
-      return reply.status(204).send();
-    } catch (error) {
-      if (error instanceof HttpError) {
-        return reply.status(error.statusCode).send({ message: error.message });
-      }
-      return reply.status(400).send({ message: (error as Error).message });
-    }
-  });
 
   app.post("/community/tourism", { preHandler: [app.authenticate] }, async (request, reply) => {
     if (request.user.role !== "admin") {
