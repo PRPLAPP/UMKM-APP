@@ -55,7 +55,8 @@
           "vite": "6.3.5"
       },
       "scripts": {
-          "dev": "vite",
-          "build": "vite build"
-      }
+    "dev": "vite",
+    "dev:api": "npm --prefix server run dev",
+    "build": "vite build"
   }
+}
