@@ -1,8 +1,4 @@
 
-  # Karya Desa Interface Design
-
-  This is a code bundle for Karya Desa Interface Design. The original project is available at https://www.figma.com/design/hD5FpreFaLQbIeyHbQojjN/Karya-Desa-Interface-Design.
-
   ## Running the code
 
   Run `npm i` to install the dependencies.
