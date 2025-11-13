@@ -9,6 +9,7 @@ async function main() {
   await seedMsmeProfiles(users);
   await seedNews();
   await seedTourismSpots();
+  await seedNotifications(users);
 }
 
 async function seedProducts() {
@@ -174,6 +175,31 @@ async function seedTourismSpots() {
         description: "Experience traditional crafts and culinary delights.",
         imageUrl: "https://images.unsplash.com/photo-1576267423048-15c0040fec78?auto=format&fit=crop&w=800&q=80",
         location: "Heritage Quarter"
+      }
+    ]
+  });
+}
+
+async function seedNotifications(users: Awaited<ReturnType<typeof seedUsers>>) {
+  const count = await prisma.notification.count();
+  if (count > 0 || !users) return;
+
+  await prisma.notification.createMany({
+    data: [
+      {
+        title: "Welcome to Karya Desa",
+        message: "Stay tuned for updates from your community.",
+        type: "system",
+        authorId: users.admin.id,
+        targetRole: null,
+        targetUserId: users.villager.id
+      },
+      {
+        title: "Profile Approved",
+        message: "Your MSME profile is under review.",
+        type: "announcement",
+        authorId: users.admin.id,
+        targetUserId: users.msme.id
       }
     ]
   });

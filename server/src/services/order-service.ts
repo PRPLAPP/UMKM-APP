@@ -1,8 +1,9 @@
 import { prisma } from "../db/client.js";
 import { orderInputSchema, type Order } from "../schemas/order.js";
 
-export async function getOrders(): Promise<Order[]> {
+export async function getOrders(ownerId?: string): Promise<Order[]> {
   const orders = await prisma.order.findMany({
+    where: ownerId ? { userId: ownerId } : undefined,
     orderBy: { createdAt: "desc" },
     include: { items: true }
   });
@@ -21,7 +22,7 @@ export async function getOrders(): Promise<Order[]> {
   }));
 }
 
-export async function createOrder(payload: unknown): Promise<Order> {
+export async function createOrder(payload: unknown, userId?: string): Promise<Order> {
   const data = orderInputSchema.parse(payload);
   const productIds = data.items.map((item) => item.productId);
 
@@ -47,6 +48,7 @@ export async function createOrder(payload: unknown): Promise<Order> {
       customerEmail: data.customerEmail,
       status: data.status ?? "pending",
       total,
+      userId,
       items: {
         create: data.items.map((item) => ({
           productId: item.productId,

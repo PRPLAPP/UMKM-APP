@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Bell, MessageCircle, LogOut, Menu, X, MapPin, Calendar, Store, TrendingUp, Loader2 } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { MessageCircle, LogOut, Menu, X, MapPin, Calendar, Store, TrendingUp, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -9,6 +9,9 @@ import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchCommunityHome, type CommunityHomeResponse } from '@/lib/api';
 import { toast } from 'sonner@2.0.3';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { NotificationMenu } from '../notifications/NotificationMenu';
 
 interface VillagerDashboardProps {
   onLogout: () => void;
@@ -18,6 +21,8 @@ export default function VillagerDashboard({ onLogout }: VillagerDashboardProps) 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [data, setData] = useState<CommunityHomeResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDirectoryOpen, setIsDirectoryOpen] = useState(false);
+  const [directorySearch, setDirectorySearch] = useState('');
   const { user } = useAuth();
 
   useEffect(() => {
@@ -43,6 +48,17 @@ export default function VillagerDashboard({ onLogout }: VillagerDashboardProps) 
   }, []);
 
   const stats = data?.stats;
+  const filteredMsmes = useMemo(() => {
+    if (!data?.msmes) return [];
+    const query = directorySearch.trim().toLowerCase();
+    if (!query) return data.msmes;
+    return data.msmes.filter(
+      (msme) =>
+        msme.name.toLowerCase().includes(query) ||
+        msme.category.toLowerCase().includes(query) ||
+        msme.location.toLowerCase().includes(query)
+    );
+  }, [data?.msmes, directorySearch]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -62,11 +78,8 @@ export default function VillagerDashboard({ onLogout }: VillagerDashboardProps) 
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 h-2 w-2 bg-destructive rounded-full" />
-            </Button>
-            <Button variant="ghost" size="icon">
+            <NotificationMenu />
+            <Button variant="ghost" size="icon" onClick={() => toast.info('Messaging coming soon')}>
               <MessageCircle className="h-5 w-5" />
             </Button>
             <Avatar className="h-8 w-8">
@@ -186,7 +199,7 @@ export default function VillagerDashboard({ onLogout }: VillagerDashboardProps) 
                 ) : (
                   <p className="text-sm text-muted-foreground">No MSMEs nearby yet.</p>
                 )}
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" onClick={() => setIsDirectoryOpen(true)}>
                   View All Businesses
                 </Button>
               </CardContent>
@@ -194,6 +207,54 @@ export default function VillagerDashboard({ onLogout }: VillagerDashboardProps) 
           </div>
         </div>
       </main>
+      {isDirectoryOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4" role="dialog" aria-modal>
+          <div className="w-full max-w-3xl bg-background rounded-xl shadow-2xl max-h-[90vh] overflow-hidden">
+            <div className="border-b border-border px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">Business Directory</h3>
+                <p className="text-sm text-muted-foreground">Browse all verified MSMEs in your community.</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setIsDirectoryOpen(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-1 space-y-1">
+                  <Label htmlFor="directory-search">Search</Label>
+                  <Input
+                    id="directory-search"
+                    placeholder="Search by name, category, or location"
+                    value={directorySearch}
+                    onChange={(e) => setDirectorySearch(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
+                {loading ? (
+                  <LoadingMessage message="Loading businesses..." />
+                ) : filteredMsmes.length ? (
+                  filteredMsmes.map((msme) => (
+                    <div key={msme.id} className="flex items-center justify-between p-4 rounded-lg border border-border">
+                      <div>
+                        <p className="font-medium">{msme.name}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{msme.category}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {msme.distanceKm.toFixed(1)} km • {msme.location}
+                        </p>
+                      </div>
+                      <Badge variant="secondary">⭐ {msme.rating.toFixed(1)}</Badge>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No businesses match your search.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

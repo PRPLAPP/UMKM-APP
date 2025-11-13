@@ -1,6 +1,7 @@
 import { MsmeStatus } from "@prisma/client";
 
 import { prisma } from "../db/client.js";
+import { HttpError } from "../utils/http-error.js";
 
 interface GrowthRecord {
   month: string;
@@ -108,4 +109,16 @@ function buildPopulationStats(totalUsers: number) {
 
 function formatMonth(date: Date) {
   return date.toLocaleString("en-US", { month: "short" });
+}
+
+export async function updateMsmeStatus(profileId: string, status: MsmeStatus) {
+  try {
+    const profile = await prisma.msmeProfile.update({
+      where: { id: profileId },
+      data: { status }
+    });
+    return profile;
+  } catch (error) {
+    throw new HttpError("MSME profile not found", 404);
+  }
 }

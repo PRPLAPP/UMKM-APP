@@ -110,6 +110,39 @@ export interface AdminDashboardResponse {
   };
 }
 
+export interface NewsPayload {
+  title: string;
+  summary: string;
+  type: "event" | "business" | "announcement";
+  publishedAt?: string;
+}
+
+export interface TourismPayload {
+  name: string;
+  description: string;
+  imageUrl: string;
+  location: string;
+}
+
+export interface MsmeProfile {
+  storeName: string;
+  category: string;
+  description: string;
+  location: string;
+  distanceKm: number;
+  rating: number;
+  status: "pending" | "approved" | "rejected";
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  read: boolean;
+  createdAt: string;
+}
+
 export interface RegisterPayload {
   name: string;
   email: string;
@@ -140,26 +173,64 @@ const authHeaders = (token?: string) =>
       }
     : {};
 
-export function fetchProducts() {
-  return fetch(`${API_BASE}/products`).then((res) => handleResponse<Product[]>(res));
+export function fetchProducts(token?: string) {
+  return fetch(`${API_BASE}/products`, {
+    headers: {
+      ...authHeaders(token)
+    }
+  }).then((res) => handleResponse<Product[]>(res));
 }
 
-export function createProduct(payload: ProductPayload) {
+export function createProduct(payload: ProductPayload, token: string) {
   return fetch(`${API_BASE}/products`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
     body: JSON.stringify(payload)
   }).then((res) => handleResponse<Product>(res));
 }
 
-export function fetchOrders() {
-  return fetch(`${API_BASE}/orders`).then((res) => handleResponse<Order[]>(res));
+export function updateProduct(productId: string, payload: Partial<ProductPayload>, token: string) {
+  return fetch(`${API_BASE}/products/${productId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify(payload)
+  }).then((res) => handleResponse<Product>(res));
 }
 
-export function createOrder(payload: OrderPayload) {
+export function deleteProduct(productId: string, token: string) {
+  return fetch(`${API_BASE}/products/${productId}`, {
+    method: "DELETE",
+    headers: {
+      ...authHeaders(token)
+    }
+  }).then((res) => {
+    if (!res.ok) {
+      return handleResponse(res);
+    }
+  });
+}
+
+export function fetchOrders(token?: string) {
+  return fetch(`${API_BASE}/orders`, {
+    headers: {
+      ...authHeaders(token)
+    }
+  }).then((res) => handleResponse<Order[]>(res));
+}
+
+export function createOrder(payload: OrderPayload, token: string) {
   return fetch(`${API_BASE}/orders`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
     body: JSON.stringify(payload)
   }).then((res) => handleResponse<Order>(res));
 }
@@ -178,6 +249,107 @@ export function fetchAdminDashboard(token: string) {
       ...authHeaders(token)
     }
   }).then((res) => handleResponse<AdminDashboardResponse>(res));
+}
+
+export function updateMsmeStatus(id: string, status: "pending" | "approved" | "rejected", token: string) {
+  return fetch(`${API_BASE}/admin/msmes/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify({ status })
+  }).then((res) => handleResponse<{ id: string }>(res));
+}
+
+export function createNews(payload: NewsPayload, token: string) {
+  return fetch(`${API_BASE}/community/news`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify(payload)
+  }).then((res) => handleResponse<CommunityHomeResponse["news"][number]>(res));
+}
+
+export function deleteNews(id: string, token: string) {
+  return fetch(`${API_BASE}/community/news/${id}`, {
+    method: "DELETE",
+    headers: {
+      ...authHeaders(token)
+    }
+  }).then((res) => {
+    if (!res.ok) {
+      return handleResponse(res);
+    }
+  });
+}
+
+export function createTourismSpot(payload: TourismPayload, token: string) {
+  return fetch(`${API_BASE}/community/tourism`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify(payload)
+  }).then((res) =>
+    handleResponse<CommunityHomeResponse["tourismSpots"][number]>(res)
+  );
+}
+
+export function deleteTourismSpot(id: string, token: string) {
+  return fetch(`${API_BASE}/community/tourism/${id}`, {
+    method: "DELETE",
+    headers: {
+      ...authHeaders(token)
+    }
+  }).then((res) => {
+    if (!res.ok) {
+      return handleResponse(res);
+    }
+  });
+}
+
+export function fetchMsmeProfile(token: string) {
+  return fetch(`${API_BASE}/msme/profile`, {
+    headers: {
+      ...authHeaders(token)
+    }
+  }).then((res) => handleResponse<MsmeProfile>(res));
+}
+
+export function updateMsmeProfile(payload: MsmeProfile, token: string) {
+  return fetch(`${API_BASE}/msme/profile`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify(payload)
+  }).then((res) => handleResponse<MsmeProfile>(res));
+}
+
+export function fetchNotifications(token: string) {
+  return fetch(`${API_BASE}/notifications`, {
+    headers: {
+      ...authHeaders(token)
+    }
+  }).then((res) => handleResponse<Notification[]>(res));
+}
+
+export function markNotificationRead(id: string, token: string) {
+  return fetch(`${API_BASE}/notifications/${id}/read`, {
+    method: "POST",
+    headers: {
+      ...authHeaders(token)
+    }
+  }).then((res) => {
+    if (!res.ok) {
+      return handleResponse(res);
+    }
+  });
 }
 
 export function registerAccount(payload: RegisterPayload) {

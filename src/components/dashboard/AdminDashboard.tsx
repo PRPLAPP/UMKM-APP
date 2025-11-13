@@ -1,16 +1,32 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Bell, LogOut, Menu, X, Users, Store, Activity, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Bell, LogOut, Menu, X, Users, Store, Activity, CheckCircle, XCircle, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import ThemeToggle from '../ThemeToggle';
 import { toast } from 'sonner@2.0.3';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '@/hooks/useAuth';
-import { fetchAdminDashboard, type AdminDashboardResponse } from '@/lib/api';
+import { NotificationMenu } from '../notifications/NotificationMenu';
+import {
+  createNews,
+  createTourismSpot,
+  deleteNews,
+  deleteTourismSpot,
+  fetchAdminDashboard,
+  fetchCommunityHome,
+  updateMsmeStatus,
+  type AdminDashboardResponse,
+  type CommunityHomeResponse
+} from '@/lib/api';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -20,40 +36,167 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dashboardData, setDashboardData] = useState<AdminDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [communityData, setCommunityData] = useState<CommunityHomeResponse | null>(null);
+  const [communityLoading, setCommunityLoading] = useState(true);
+  const [isNewsDialogOpen, setIsNewsDialogOpen] = useState(false);
+  const [isTourismDialogOpen, setIsTourismDialogOpen] = useState(false);
+  const [newsForm, setNewsForm] = useState({
+    title: '',
+    summary: '',
+    type: 'event' as 'event' | 'business' | 'announcement',
+    publishedAt: ''
+  });
+  const [tourismForm, setTourismForm] = useState({
+    name: '',
+    description: '',
+    imageUrl: '',
+    location: ''
+  });
+  const [isSubmittingNews, setIsSubmittingNews] = useState(false);
+  const [isSubmittingTourism, setIsSubmittingTourism] = useState(false);
   const { token, user } = useAuth();
+
+  const loadDashboard = async (authToken = token) => {
+    if (!authToken) return;
+    setLoading(true);
+    try {
+      const data = await fetchAdminDashboard(authToken);
+      setDashboardData(data);
+    } catch (error) {
+      toast.error('Unable to load admin metrics', {
+        description: error instanceof Error ? error.message : undefined
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!token) return;
-    let active = true;
-    setLoading(true);
-
-    fetchAdminDashboard(token)
-      .then((data) => {
-        if (active) setDashboardData(data);
-      })
-      .catch((error) => {
-        toast.error('Unable to load admin metrics', {
-          description: error instanceof Error ? error.message : undefined
-        });
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
+    void loadDashboard(token);
   }, [token]);
 
-  const handleApprove = (name: string) => {
-    toast.success(`${name} approved (mock)`);
+  const loadCommunityData = async () => {
+    setCommunityLoading(true);
+    try {
+      const data = await fetchCommunityHome();
+      setCommunityData(data);
+    } catch (error) {
+      toast.error('Unable to load community data', {
+        description: error instanceof Error ? error.message : undefined
+      });
+    } finally {
+      setCommunityLoading(false);
+    }
   };
 
-  const handleReject = (name: string) => {
-    toast.error(`${name} rejected (mock)`);
+  useEffect(() => {
+    loadCommunityData();
+  }, []);
+
+  const handleApprove = async (id: string, name: string) => {
+    if (!token) return;
+    try {
+      await updateMsmeStatus(id, 'approved', token);
+      toast.success(`${name} approved`);
+      await loadDashboard(token);
+    } catch (error) {
+      toast.error(`Failed to approve ${name}`, {
+        description: error instanceof Error ? error.message : undefined
+      });
+    }
+  };
+
+  const handleReject = async (id: string, name: string) => {
+    if (!token) return;
+    try {
+      await updateMsmeStatus(id, 'rejected', token);
+      toast.success(`${name} rejected`);
+      await loadDashboard(token);
+    } catch (error) {
+      toast.error(`Failed to reject ${name}`, {
+        description: error instanceof Error ? error.message : undefined
+      });
+    }
   };
 
   const populationEntries = dashboardData?.population.entries ?? [];
+
+  const resetNewsForm = () => {
+    setNewsForm({ title: '', summary: '', type: 'event', publishedAt: '' });
+  };
+
+  const resetTourismForm = () => {
+    setTourismForm({ name: '', description: '', imageUrl: '', location: '' });
+  };
+
+  const submitNews = async () => {
+    if (!token) return;
+    try {
+      setIsSubmittingNews(true);
+      const payload = {
+        ...newsForm,
+        publishedAt: newsForm.publishedAt ? new Date(newsForm.publishedAt).toISOString() : undefined
+      };
+      await createNews(payload, token);
+      toast.success('Update published');
+      setIsNewsDialogOpen(false);
+      resetNewsForm();
+      loadCommunityData();
+    } catch (error) {
+      toast.error('Unable to publish update', {
+        description: error instanceof Error ? error.message : undefined
+      });
+    } finally {
+      setIsSubmittingNews(false);
+    }
+  };
+
+  const submitTourism = async () => {
+    if (!token) return;
+    try {
+      setIsSubmittingTourism(true);
+      await createTourismSpot(tourismForm, token);
+      toast.success('Tourism spot created');
+      setIsTourismDialogOpen(false);
+      resetTourismForm();
+      loadCommunityData();
+    } catch (error) {
+      toast.error('Unable to create tourism spot', {
+        description: error instanceof Error ? error.message : undefined
+      });
+    } finally {
+      setIsSubmittingTourism(false);
+    }
+  };
+
+  const handleDeleteNews = async (id: string, title: string) => {
+    if (!token) return;
+    if (!window.confirm(`Delete "${title}"?`)) return;
+    try {
+      await deleteNews(id, token);
+      toast.success('Update deleted');
+      loadCommunityData();
+    } catch (error) {
+      toast.error('Unable to delete update', {
+        description: error instanceof Error ? error.message : undefined
+      });
+    }
+  };
+
+  const handleDeleteTourism = async (id: string, name: string) => {
+    if (!token) return;
+    if (!window.confirm(`Delete "${name}"?`)) return;
+    try {
+      await deleteTourismSpot(id, token);
+      toast.success('Tourism spot deleted');
+      loadCommunityData();
+    } catch (error) {
+      toast.error('Unable to delete tourism spot', {
+        description: error instanceof Error ? error.message : undefined
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -68,10 +211,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 h-2 w-2 bg-destructive rounded-full" />
-            </Button>
+            <NotificationMenu />
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-primary/10 text-primary">
                 {user?.name?.slice(0, 2).toUpperCase() ?? 'AD'}
@@ -158,11 +298,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button size="sm" variant="default" className="gap-1" onClick={() => handleApprove(request.name)}>
+                            <Button size="sm" variant="default" className="gap-1" onClick={() => handleApprove(request.id, request.name)}>
                               <CheckCircle className="h-3 w-3" />
                               Approve
                             </Button>
-                            <Button size="sm" variant="destructive" className="gap-1" onClick={() => handleReject(request.name)}>
+                            <Button size="sm" variant="destructive" className="gap-1" onClick={() => handleReject(request.id, request.name)}>
                               <XCircle className="h-3 w-3" />
                               Reject
                             </Button>
@@ -179,6 +319,76 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   )}
                 </TableBody>
               </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <CardTitle>Community Content</CardTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsNewsDialogOpen(true)}>
+                + New Update
+              </Button>
+              <Button variant="outline" onClick={() => setIsTourismDialogOpen(true)}>
+                + Tourism Spot
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium">Latest News & Events</h4>
+                <span className="text-xs text-muted-foreground">Showing {communityData?.news.length ?? 0} items</span>
+              </div>
+              {communityLoading ? (
+                <SkeletonMessage />
+              ) : communityData?.news.length ? (
+                <div className="space-y-2">
+                  {communityData.news.map((item) => (
+                    <div key={item.id} className="flex items-start justify-between rounded-lg border border-border p-3">
+                      <div>
+                        <p className="font-medium">{item.title}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{item.type}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(item.publishedAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => handleDeleteNews(item.id, item.title)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No news yet.</p>
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium">Tourism Spots</h4>
+                <span className="text-xs text-muted-foreground">Showing {communityData?.tourismSpots.length ?? 0} items</span>
+              </div>
+              {communityLoading ? (
+                <SkeletonMessage />
+              ) : communityData?.tourismSpots.length ? (
+                <div className="space-y-2">
+                  {communityData.tourismSpots.map((spot) => (
+                    <div key={spot.id} className="flex items-start justify-between rounded-lg border border-border p-3">
+                      <div>
+                        <p className="font-medium">{spot.name}</p>
+                        <p className="text-xs text-muted-foreground">{spot.location}</p>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => handleDeleteTourism(spot.id, spot.name)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No tourism spots yet.</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -233,7 +443,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 <div className="text-center py-12 text-muted-foreground">
                   <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Manage upcoming events from the community module.</p>
-                  <Button variant="outline" className="mt-4">
+                  <Button
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() => {
+                      setNewsForm((prev) => ({ ...prev, type: 'event' }));
+                      setIsNewsDialogOpen(true);
+                    }}
+                  >
                     Create Event
                   </Button>
                 </div>
@@ -252,6 +469,112 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           </CardContent>
         </Card>
       </main>
+
+      <Dialog open={isNewsDialogOpen} onOpenChange={(open) => {
+        setIsNewsDialogOpen(open);
+        if (!open) resetNewsForm();
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Publish Update</DialogTitle>
+            <DialogDescription>Share an event, announcement, or MSME highlight.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="news-title">Title</Label>
+              <Input id="news-title" value={newsForm.title} onChange={(e) => setNewsForm((prev) => ({ ...prev, title: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="news-summary">Summary</Label>
+              <Textarea id="news-summary" value={newsForm.summary} onChange={(e) => setNewsForm((prev) => ({ ...prev, summary: e.target.value }))} />
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select value={newsForm.type} onValueChange={(value: 'event' | 'business' | 'announcement') => setNewsForm((prev) => ({ ...prev, type: value }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="event">Event</SelectItem>
+                    <SelectItem value="business">Business</SelectItem>
+                    <SelectItem value="announcement">Announcement</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="news-date">Publish Date</Label>
+                <Input
+                  id="news-date"
+                  type="datetime-local"
+                  value={newsForm.publishedAt}
+                  onChange={(e) => setNewsForm((prev) => ({ ...prev, publishedAt: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button className="flex-1" onClick={submitNews} disabled={isSubmittingNews}>
+                {isSubmittingNews ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Publishing...
+                  </>
+                ) : (
+                  'Publish'
+                )}
+              </Button>
+              <Button variant="outline" onClick={() => setIsNewsDialogOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isTourismDialogOpen} onOpenChange={(open) => {
+        setIsTourismDialogOpen(open);
+        if (!open) resetTourismForm();
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Tourism Spot</DialogTitle>
+            <DialogDescription>Highlight a destination for villagers to explore.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="spot-name">Name</Label>
+              <Input id="spot-name" value={tourismForm.name} onChange={(e) => setTourismForm((prev) => ({ ...prev, name: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="spot-location">Location</Label>
+              <Input id="spot-location" value={tourismForm.location} onChange={(e) => setTourismForm((prev) => ({ ...prev, location: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="spot-image">Image URL</Label>
+              <Input id="spot-image" value={tourismForm.imageUrl} onChange={(e) => setTourismForm((prev) => ({ ...prev, imageUrl: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="spot-description">Description</Label>
+              <Textarea id="spot-description" value={tourismForm.description} onChange={(e) => setTourismForm((prev) => ({ ...prev, description: e.target.value }))} />
+            </div>
+            <div className="flex gap-3">
+              <Button className="flex-1" onClick={submitTourism} disabled={isSubmittingTourism}>
+                {isSubmittingTourism ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Spot'
+                )}
+              </Button>
+              <Button variant="outline" onClick={() => setIsTourismDialogOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

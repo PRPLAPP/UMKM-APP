@@ -1,6 +1,8 @@
 import { MsmeStatus } from "@prisma/client";
 
 import { prisma } from "../db/client.js";
+import { HttpError } from "../utils/http-error.js";
+import { newsItemSchema, tourismSpotSchema } from "../schemas/community.js";
 
 export async function getCommunityHomeData() {
   const [newsItems, tourismSpots, msmeProfiles, stats] = await Promise.all([
@@ -61,4 +63,55 @@ async function aggregateCommunityStats() {
     tourismSpotsCount,
     activeMembers
   };
+}
+
+export async function createNewsItem(payload: unknown, userId: string) {
+  const data = newsItemSchema.parse(payload);
+  const news = await prisma.newsItem.create({
+    data: {
+      title: data.title,
+      summary: data.summary,
+      type: data.type,
+      publishedAt: data.publishedAt ? new Date(data.publishedAt) : undefined,
+      createdById: userId
+    }
+  });
+  return {
+    id: news.id,
+    title: news.title,
+    summary: news.summary,
+    type: news.type,
+    publishedAt: news.publishedAt.toISOString()
+  };
+}
+
+export async function deleteNewsItem(newsId: string, userRole: string) {
+  if (userRole !== "admin") {
+    throw new HttpError("Only admins can delete news items", 403);
+  }
+  await prisma.newsItem.delete({ where: { id: newsId } });
+}
+
+export async function createTourismSpot(payload: unknown, userId: string) {
+  const data = tourismSpotSchema.parse(payload);
+  const spot = await prisma.tourismSpot.create({
+    data: {
+      ...data,
+      createdById: userId
+    }
+  });
+  return {
+    id: spot.id,
+    name: spot.name,
+    description: spot.description,
+    imageUrl: spot.imageUrl,
+    location: spot.location
+  };
+}
+
+export async function deleteTourismSpot(spotId: string, userRole: string) {
+  if (userRole !== "admin") {
+    throw new HttpError("Only admins can delete tourism spots", 403);
+  }
+  await prisma.tourismSpot.delete({ where: { id: spotId } });
 }

@@ -40,6 +40,8 @@ model Product {
   category    String
   createdAt   DateTime    @default(now())
   items       OrderItem[]
+  ownerId     String?
+  owner       User?       @relation(fields: [ownerId], references: [id])
 }
 
 model Order {
@@ -72,6 +74,11 @@ model User {
   createdAt    DateTime  @default(now())
   orders       Order[]
   msmeProfile  MsmeProfile?
+  products     Product[]
+  newsItems    NewsItem[]
+  tourismSpots TourismSpot[]
+  notificationsAuthored Notification[] @relation("NotificationAuthor")
+  notificationsReceived Notification[] @relation("NotificationTarget")
 }
 
 model MsmeProfile {
@@ -95,6 +102,8 @@ model NewsItem {
   type        NewsType
   publishedAt DateTime  @default(now())
   createdAt   DateTime  @default(now())
+  createdById String?
+  createdBy   User?     @relation(fields: [createdById], references: [id])
 }
 
 model TourismSpot {
@@ -104,4 +113,21 @@ model TourismSpot {
   imageUrl    String
   location    String
   createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+}
+
+model Notification {
+  id           String    @id @default(uuid())
+  title        String
+  message      String
+  type         String
+  read         Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  readAt       DateTime?
+  authorId     String
+  targetUserId String?
+  targetRole   UserRole?
+  author       User      @relation("NotificationAuthor", fields: [authorId], references: [id])
+  targetUser   User?     @relation("NotificationTarget", fields: [targetUserId], references: [id])
 }

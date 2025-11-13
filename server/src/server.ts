@@ -12,6 +12,8 @@ import { registerReportRoutes } from "./routes/reports.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerCommunityRoutes } from "./routes/community.js";
 import { registerAdminRoutes } from "./routes/admin.js";
+import { registerMsmeProfileRoutes } from "./routes/msme-profile.js";
+import { registerNotificationRoutes } from "./routes/notifications.js";
 import { prisma } from "./db/client.js";
 
 const app = Fastify({
@@ -38,6 +40,8 @@ await registerReportRoutes(app);
 await registerAuthRoutes(app);
 await registerCommunityRoutes(app);
 await registerAdminRoutes(app);
+await registerMsmeProfileRoutes(app);
+await registerNotificationRoutes(app);
 
 app.addHook("onClose", async () => {
   await prisma.$disconnect();
