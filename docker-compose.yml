@@ -13,31 +13,22 @@ services:
       timeout: 5s
       retries: 5
 
-  api:
+  app:
     build:
-      context: ./server
+      context: .
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
     environment:
       NODE_ENV: production
-      API_PORT: 5000
+      PORT: 7860
       DATABASE_URL: postgresql://umkm:umkm@db:5432/umkm?schema=public
       JWT_SECRET: super-secret-change-me
     depends_on:
       db:
         condition: service_healthy
     ports:
-      - "5050:5000"
-
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile.web
-      args:
-        VITE_API_BASE_URL: http://localhost:5050
-    ports:
-      - "3000:80"
-    depends_on:
-      - api
+      - "3000:7860"
 
 volumes:
   postgres_data:
