@@ -1,4 +1,15 @@
 
+---
+title: UMKM-APP
+emoji: 🛍️
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+license: mit
+app_port: 3000
+---
+
   ## Project layout
 
   - `src/` – Vite + React frontend.
