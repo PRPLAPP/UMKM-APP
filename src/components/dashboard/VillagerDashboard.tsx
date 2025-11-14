@@ -8,7 +8,7 @@ import ThemeToggle from '../ThemeToggle';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchCommunityHome, type CommunityHomeResponse } from '@/lib/api';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { NotificationMenu } from '../notifications/NotificationMenu';
@@ -102,7 +102,7 @@ export default function VillagerDashboard({ onLogout }: VillagerDashboardProps) 
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label="Upcoming Events" icon={<Calendar className="h-6 w-6 text-blue-600" />} value={stats?.eventsCount} color="blue" />
-          <StatCard label="Local Businesses" icon={<Store className="h-6 w-6 text-green-600" />} value={stats?.businessesCount} color="green" />
+          <StatCard label="Local Businesses" icon={<Store className="h-6 w-6 text-blue-600" />} value={stats?.businessesCount} color="blue" />
           <StatCard label="Tourism Spots" icon={<MapPin className="h-6 w-6 text-amber-600" />} value={stats?.tourismSpotsCount} color="amber" />
           <StatCard label="Active Members" icon={<TrendingUp className="h-6 w-6 text-purple-600" />} value={stats?.activeMembers} color="purple" />
         </div>
@@ -262,7 +262,7 @@ export default function VillagerDashboard({ onLogout }: VillagerDashboardProps) 
 function StatCard({ label, icon, value, color }: { label: string; icon: React.ReactNode; value?: number; color: 'blue' | 'green' | 'amber' | 'purple' }) {
   const colorMap = {
     blue: 'bg-blue-500/10',
-    green: 'bg-green-500/10',
+    green: 'bg-blue-500/10',
     amber: 'bg-amber-500/10',
     purple: 'bg-purple-500/10'
   };

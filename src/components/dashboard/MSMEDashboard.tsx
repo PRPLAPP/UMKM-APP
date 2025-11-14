@@ -10,7 +10,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import ThemeToggle from '../ThemeToggle';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { NotificationMenu } from '../notifications/NotificationMenu';
 import {
@@ -469,7 +469,7 @@ export default function MSMEDashboard({ onLogout }: MSMEDashboardProps) {
               <div className="text-2xl mb-1">
                 {isLoadingSummary ? '—' : salesSummary?.ordersCount ?? 0}
               </div>
-              <div className="flex items-center gap-1 text-xs text-green-600">
+              <div className="flex items-center gap-1 text-xs text-blue-600">
                 <TrendingUp className="h-3 w-3" />
                 Live from backend
               </div>
@@ -660,10 +660,10 @@ export default function MSMEDashboard({ onLogout }: MSMEDashboardProps) {
             <CardTitle>Recent Orders</CardTitle>
             <Dialog
               open={isCreateOrderOpen}
-              onOpenChange={(open) => {
-                setIsCreateOrderOpen(open);
-                if (!open) resetOrderForm();
-              }}
+                onOpenChange={(open: boolean) => {
+                  setIsCreateOrderOpen(open);
+                  if (!open) resetOrderForm();
+                }}
             >
               <Button variant="outline" onClick={() => setIsCreateOrderOpen(true)}>
                 + Create Order
@@ -686,7 +686,7 @@ export default function MSMEDashboard({ onLogout }: MSMEDashboardProps) {
                     <Label>Items</Label>
                     {orderForm.items.map((item, index) => (
                       <div key={index} className="flex items-center gap-3">
-                        <Select value={item.productId} onValueChange={(value) => handleOrderItemChange(index, 'productId', value)}>
+                        <Select value={item.productId} onValueChange={(value: string) => handleOrderItemChange(index, 'productId', value)}>
                           <SelectTrigger className="flex-1">
                             <SelectValue placeholder="Select product" />
                           </SelectTrigger>

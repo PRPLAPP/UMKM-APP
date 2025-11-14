@@ -5,7 +5,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Mountain, Eye, EyeOff, Loader2 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import ThemeToggle from '../ThemeToggle';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { useAuth } from '@/hooks/useAuth';

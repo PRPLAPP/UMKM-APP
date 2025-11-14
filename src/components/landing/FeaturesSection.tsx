@@ -14,7 +14,7 @@ const features = [
     icon: Store,
     title: 'For MSMEs',
     description: 'Showcase your products and services, reach local customers, manage orders efficiently, and grow your business with data-driven insights.',
-    color: 'bg-green-500/10 text-green-600 dark:text-green-400',
+    color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
   },
   {
     icon: ShieldCheck,

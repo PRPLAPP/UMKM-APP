@@ -333,7 +333,7 @@ export function fetchMsmeProfile(token: string) {
   }).then((res) => handleResponse<MsmeProfile>(res));
 }
 
-export function updateMsmeProfile(payload: MsmeProfile, token: string) {
+export function updateMsmeProfile(payload: Partial<MsmeProfile>, token: string) {
   return fetch(`${API_BASE}/msme/profile`, {
     method: "PUT",
     headers: {
