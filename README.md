@@ -59,4 +59,6 @@ app_port: 3000
   - `db` – Postgres 16 with a persisted volume.
   - `api` – Fastify server (build + migrate on startup) exposed on port 5000.
   - `web` – Static build served by Nginx on port 3000 (built with `VITE_API_BASE_URL=http://localhost:5000` by default).
+
+  The root `Dockerfile` builds the frontend and backend into a single image (Fastify serves the static assets) so you can deploy to single-container hosts such as Hugging Face Spaces. Provide the appropriate `DATABASE_URL`, `JWT_SECRET`, and `PORT` environment variables at runtime.
   

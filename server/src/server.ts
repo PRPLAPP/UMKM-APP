@@ -2,7 +2,11 @@ import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import jwt from "@fastify/jwt";
+import fastifyStatic from "@fastify/static";
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import fs from "node:fs";
 
 import { env } from "./config/env.js";
 import { registerHealthRoutes } from "./routes/health.js";
@@ -42,6 +46,30 @@ await registerCommunityRoutes(app);
 await registerAdminRoutes(app);
 await registerMsmeProfileRoutes(app);
 await registerNotificationRoutes(app);
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDistPath = path.resolve(__dirname, "../client");
+const hasClientBundle = fs.existsSync(clientDistPath);
+
+if (hasClientBundle) {
+  await app.register(fastifyStatic, {
+    root: clientDistPath,
+    prefix: "/",
+    decorateReply: false
+  });
+
+  app.setNotFoundHandler((request, reply) => {
+    if (request.raw.url?.startsWith("/api")) {
+      return reply.status(404).send({ message: "Not Found" });
+    }
+    return reply.sendFile("index.html");
+  });
+} else {
+  app.setNotFoundHandler((request, reply) => {
+    reply.status(404).send({ message: "Not Found" });
+  });
+}
 
 app.addHook("onClose", async () => {
   await prisma.$disconnect();
