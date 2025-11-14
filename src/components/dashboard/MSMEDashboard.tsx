@@ -482,9 +482,13 @@ export default function MSMEDashboard({ onLogout }: MSMEDashboardProps) {
                 <div className="text-sm text-muted-foreground">Average Rating</div>
                 <Star className="h-4 w-4 text-muted-foreground" />
               </div>
-              <div className="text-2xl mb-1">4.8</div>
+              <div className="text-2xl mb-1">
+                {profile ? profile.rating.toFixed(1) : '—'}
+              </div>
               <div className="text-xs text-muted-foreground">
-                From 125 reviews
+                {orders.length
+                  ? `From ${orders.length} order${orders.length === 1 ? '' : 's'}`
+                  : 'No orders yet'}
               </div>
             </CardContent>
           </Card>
