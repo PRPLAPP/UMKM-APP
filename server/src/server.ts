@@ -37,15 +37,21 @@ app.decorate(
     }
   }
 );
-await registerHealthRoutes(app);
-await registerProductRoutes(app);
-await registerOrderRoutes(app);
-await registerReportRoutes(app);
-await registerAuthRoutes(app);
-await registerCommunityRoutes(app);
-await registerAdminRoutes(app);
-await registerMsmeProfileRoutes(app);
-await registerNotificationRoutes(app);
+
+await app.register(
+  async (api) => {
+    await registerHealthRoutes(api);
+    await registerProductRoutes(api);
+    await registerOrderRoutes(api);
+    await registerReportRoutes(api);
+    await registerAuthRoutes(api);
+    await registerCommunityRoutes(api);
+    await registerAdminRoutes(api);
+    await registerMsmeProfileRoutes(api);
+    await registerNotificationRoutes(api);
+  },
+  { prefix: "/api" }
+);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
