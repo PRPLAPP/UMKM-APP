@@ -16,7 +16,7 @@
   2. Copy `server/.env.example` to `server/.env` and set `API_PORT`, `DATABASE_URL`, and `JWT_SECRET` (defaults assume Postgres running on `localhost:5432` with user/password/db `umkm`).
   3. Make sure Postgres is running, then run `npm run prisma:migrate` inside `server/` to apply migrations.
   4. (Optional) Run `npm run db:seed` inside `server/` to populate a couple of sample products and demo accounts (`msme@example.com` / `Password123!`, `admin@example.com` / `Password123!`).
-  5. Run `npm run dev:api` from the project root (or `npm run dev` inside `server/`) to boot the Fastify server with hot reload via `tsx`.
+  5. Run `npm run dev:api` from the project root (or `npm run dev` inside `server/`) to boot the Fastify server with hot reload via `tsx`. The server listens on `0.0.0.0:${API_PORT}` and will honor the `PORT` env var when provided (handy for hosting platforms).
 
   ### Available endpoints
 
@@ -34,7 +34,7 @@
 
   Routes live in `server/src/routes`, business logic in `server/src/services`, and persistence is handled by Prisma + Postgres (see `server/prisma/schema.prisma`). Update the schema and run `npm run prisma:migrate` any time the data model changes.
 
-  The Vite dev server proxies `/api/*` to the Fastify port so React components can call e.g. `fetch('/api/products')` without worrying about CORS during local development. Make sure both `npm run dev` and `npm run dev:api` are running (plus Postgres) to see live data inside the MSME dashboard.
+  The Vite dev server proxies `/api/*` to the Fastify port so React components can call e.g. `fetch('/api/products')` without worrying about CORS during local development. Production builds default to hitting `${window.location.origin}/api` unless `VITE_API_BASE_URL` is set at build time, which makes it easy to host the frontend + API behind the same domain or point the UI at a remote API. Make sure both `npm run dev` and `npm run dev:api` are running (plus Postgres) to see live data inside the MSME dashboard.
 
   ## Docker workflow
 

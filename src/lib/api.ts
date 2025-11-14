@@ -1,4 +1,6 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||
+  (typeof window !== "undefined" ? `${window.location.origin}/api` : "/api");
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
