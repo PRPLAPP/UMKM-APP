@@ -5,6 +5,10 @@ WORKDIR /app/frontend
 COPY package*.json ./
 RUN npm install
 COPY . .
+
+ARG VITE_API_BASE_URL=/api
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
 RUN npm run build
 
 # Build backend
@@ -37,5 +41,6 @@ COPY server/package*.json ./
 COPY server/entrypoint.sh ./entrypoint.sh
 RUN chmod +x entrypoint.sh
 
-EXPOSE 5000
+ENV PORT=7860
+EXPOSE 7860
 CMD ["./entrypoint.sh"]
