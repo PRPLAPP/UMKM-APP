@@ -1,6 +1,7 @@
 import React from 'react';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { motion } from 'motion/react';
+import { useI18n } from '../../i18n';
 
 const screenshots = [
   {
@@ -21,6 +22,7 @@ const screenshots = [
 ];
 
 export default function ShowcaseSection() {
+  const { t } = useI18n();
   return (
     <section id="showcase" className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
       <div className="max-w-7xl mx-auto">
@@ -31,10 +33,8 @@ export default function ShowcaseSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl sm:text-4xl mb-4">See It in Action</h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Explore our intuitive dashboards designed for your community
-          </p>
+          <h2 className="text-3xl sm:text-4xl mb-4">{t('showcaseHeading')}</h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">{t('showcaseSub')}</p>
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-8">

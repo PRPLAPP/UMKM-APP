@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import ThemeToggle from '../ThemeToggle';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { useAuth } from '@/hooks/useAuth';
+import { useI18n } from '../../i18n';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -16,21 +17,22 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { login, authLoading } = useAuth();
+  const { t } = useI18n();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
-      toast.error('Please fill in all fields');
+      toast.error(t('pleaseFillAllFields'));
       return;
     }
 
     try {
       const user = await login({ email, password });
-      toast.success(`Welcome back, ${user.name}!`);
+      toast.success(`${t('welcomeBack')}, ${user.name}!`);
       navigate(`/dashboard/${user.role}`);
     } catch (error) {
-      toast.error('Unable to sign in', {
+      toast.error(t('unableToSignIn'), {
         description: error instanceof Error ? error.message : 'Please try again.'
       });
     }
@@ -54,14 +56,13 @@ export default function LoginPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Welcome Back</CardTitle>
-              <CardDescription>Sign in to your account to continue</CardDescription>
+              <CardTitle>{t('welcomeBack')}</CardTitle>
+              <CardDescription>{t('signInToContinue')}</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Sign in with your credentials. We’ll send you to the correct dashboard based on your
-                  account role.
+                  {t('signInHint')}
                 </p>
 
                 <div className="space-y-2">
@@ -98,10 +99,10 @@ export default function LoginPage() {
                 <div className="flex items-center justify-between text-sm">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" className="rounded border-border" />
-                    <span className="text-muted-foreground">Remember me</span>
+                    <span className="text-muted-foreground">{t('rememberMe')}</span>
                   </label>
                   <Link to="/forgot-password" className="text-primary hover:underline">
-                    Forgot password?
+                    {t('forgotPassword')}
                   </Link>
                 </div>
 
@@ -109,17 +110,17 @@ export default function LoginPage() {
                   {authLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing In...
+                      {t('signingIn')}
                     </>
                   ) : (
-                    'Sign In'
+                    t('signIn')
                   )}
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">
-                  Don't have an account?{' '}
+                  {t('dontHaveAccount')}{' '}
                   <Link to="/register" className="text-primary hover:underline">
-                    Sign up
+                    {t('signUp')}
                   </Link>
                 </p>
               </form>
@@ -139,9 +140,9 @@ export default function LoginPage() {
             />
           </div>
           <div className="text-center space-y-2">
-            <h3 className="text-2xl">Join Your Community</h3>
+            <h3 className="text-2xl">{t('joinYourCommunity')}</h3>
             <p className="text-muted-foreground">
-              Connect with villagers, discover local businesses, and grow together
+              {t('joinCommunityDesc')}
             </p>
           </div>
         </div>

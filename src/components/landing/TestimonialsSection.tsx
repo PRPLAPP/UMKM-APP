@@ -3,6 +3,7 @@ import { Card, CardContent } from '../ui/card';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Star } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useI18n } from '../../i18n';
 
 const testimonials = [
   {
@@ -29,6 +30,7 @@ const testimonials = [
 ];
 
 export default function TestimonialsSection() {
+  const { t } = useI18n();
   return (
     <section id="testimonials" className="py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -39,10 +41,8 @@ export default function TestimonialsSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl sm:text-4xl mb-4">Loved by Communities</h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            See what our users have to say about Karya Desa
-          </p>
+          <h2 className="text-3xl sm:text-4xl mb-4">{t('testimonialsHeading')}</h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">{t('testimonialsSub')}</p>
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-8">

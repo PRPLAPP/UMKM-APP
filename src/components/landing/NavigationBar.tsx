@@ -3,9 +3,12 @@ import { Link } from 'react-router-dom';
 import { Menu, X, Mountain } from 'lucide-react';
 import { Button } from '../ui/button';
 import ThemeToggle from '../ThemeToggle';
+import { useI18n } from '../../i18n';
 
 export default function NavigationBar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const { t, lang, setLang } = useI18n();
 
   return (
     <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-md border-b border-border z-50">
@@ -22,27 +25,36 @@ export default function NavigationBar() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
-              Features
+              {t('features')}
             </a>
             <a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">
-              How It Works
+              {t('howItWorks')}
             </a>
             <a href="#showcase" className="text-muted-foreground hover:text-foreground transition-colors">
-              Showcase
+              {t('showcase')}
             </a>
             <a href="#testimonials" className="text-muted-foreground hover:text-foreground transition-colors">
-              Testimonials
+              {t('testimonials')}
             </a>
           </div>
 
           {/* Right Section */}
           <div className="hidden md:flex items-center gap-3">
             <ThemeToggle />
+            <select
+              aria-label="Language"
+              value={lang}
+              onChange={(e) => setLang(e.target.value as 'en' | 'id')}
+              className="bg-transparent border border-border rounded px-2 py-1 text-sm"
+            >
+              <option value="en">EN</option>
+              <option value="id">ID</option>
+            </select>
             <Link to="/login">
-              <Button variant="ghost">Sign In</Button>
+              <Button variant="ghost">{t('signIn')}</Button>
             </Link>
             <Link to="/register">
-              <Button>Get Started</Button>
+              <Button>{t('getStarted')}</Button>
             </Link>
           </div>
 
@@ -69,35 +81,46 @@ export default function NavigationBar() {
               className="block py-2 text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Features
+              {t('features')}
             </a>
             <a
               href="#how-it-works"
               className="block py-2 text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
-              How It Works
+              {t('howItWorks')}
             </a>
             <a
               href="#showcase"
               className="block py-2 text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Showcase
+              {t('showcase')}
             </a>
             <a
               href="#testimonials"
               className="block py-2 text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Testimonials
+              {t('testimonials')}
             </a>
             <div className="pt-3 space-y-2">
+              <div className="px-2">
+                <select
+                  aria-label="Language"
+                  value={lang}
+                  onChange={(e) => setLang(e.target.value as 'en' | 'id')}
+                  className="w-full bg-transparent border border-border rounded px-2 py-1 text-sm"
+                >
+                  <option value="en">English</option>
+                  <option value="id">Bahasa</option>
+                </select>
+              </div>
               <Link to="/login" className="block">
-                <Button variant="outline" className="w-full">Sign In</Button>
+                <Button variant="outline" className="w-full">{t('signIn')}</Button>
               </Link>
               <Link to="/register" className="block">
-                <Button className="w-full">Get Started</Button>
+                <Button className="w-full">{t('getStarted')}</Button>
               </Link>
             </div>
           </div>

@@ -7,21 +7,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Mountain, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import ThemeToggle from '../ThemeToggle';
+import { useI18n } from '../../i18n';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const { t } = useI18n();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email) {
-      toast.error('Please enter your email');
+      toast.error(t('pleaseEnterEmail'));
       return;
     }
-
     // Demo password reset
-    toast.success('Password reset link sent to your email!');
+    toast.success(t('resetLinkSent'));
     setIsSubmitted(true);
   };
 
@@ -41,11 +42,9 @@ export default function ForgotPasswordPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Forgot Password?</CardTitle>
+            <CardTitle>{t('forgotPassword')}</CardTitle>
             <CardDescription>
-              {isSubmitted
-                ? "Check your email for reset instructions"
-                : "We'll send you a reset link"}
+              {isSubmitted ? t('checkEmailForReset') : t('willSendResetLink')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -63,37 +62,37 @@ export default function ForgotPasswordPage() {
                 </div>
 
                 <Button type="submit" className="w-full">
-                  Send Reset Link
+                  {t('sendResetLink')}
                 </Button>
 
                 <Link to="/login" className="flex items-center justify-center gap-2 text-sm text-primary hover:underline">
                   <ArrowLeft className="h-4 w-4" />
-                  Back to Sign In
+                  {t('backToSignIn')}
                 </Link>
               </form>
             ) : (
               <div className="space-y-4">
                 <div className="rounded-lg bg-accent/20 border border-accent p-4 text-center">
                   <p className="text-sm text-muted-foreground">
-                    We've sent a password reset link to <strong>{email}</strong>.
+                    {t('resetLinkSent')} <strong>{email}</strong>.
                     Please check your inbox and follow the instructions.
                   </p>
                 </div>
 
                 <Link to="/login" className="block">
                   <Button className="w-full">
-                    Return to Sign In
+                    {t('returnToSignIn')}
                   </Button>
                 </Link>
 
                 <button
                   onClick={() => {
                     setIsSubmitted(false);
-                    toast.success('Reset link sent again!');
+                    toast.success(t('resetLinkSent'));
                   }}
                   className="w-full text-sm text-primary hover:underline"
                 >
-                  Didn't receive the email? Resend
+                  {t('didntReceiveEmail')}
                 </button>
               </div>
             )}

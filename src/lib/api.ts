@@ -168,7 +168,7 @@ export interface AuthResponse {
   };
 }
 
-const authHeaders = (token?: string) =>
+const authHeaders = (token?: string): Record<string, string> =>
   token
     ? {
         Authorization: `Bearer ${token}`

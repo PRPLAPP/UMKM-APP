@@ -1,8 +1,10 @@
 import React from 'react';
 import { Mountain, Facebook, Twitter, Instagram, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useI18n } from '../../i18n';
 
 export default function Footer() {
+  const { t } = useI18n();
   return (
     <footer className="bg-muted/30 border-t border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -15,33 +17,31 @@ export default function Footer() {
               </div>
               <span className="text-xl">Karya Desa</span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Empowering villages through digital connection and collaboration.
-            </p>
+            <p className="text-sm text-muted-foreground">{t('footerTagline')}</p>
           </div>
 
           {/* Product */}
           <div>
-            <h3 className="text-sm mb-4">Product</h3>
+            <h3 className="text-sm mb-4">{t('product')}</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
                 <a href="#features" className="hover:text-foreground transition-colors">
-                  Features
+                  {t('features')}
                 </a>
               </li>
               <li>
                 <a href="#how-it-works" className="hover:text-foreground transition-colors">
-                  How It Works
+                  {t('howItWorks')}
                 </a>
               </li>
               <li>
                 <a href="#showcase" className="hover:text-foreground transition-colors">
-                  Showcase
+                  {t('showcase')}
                 </a>
               </li>
               <li>
                 <Link to="/register" className="hover:text-foreground transition-colors">
-                  Get Started
+                  {t('getStarted')}
                 </Link>
               </li>
             </ul>
@@ -49,26 +49,26 @@ export default function Footer() {
 
           {/* Company */}
           <div>
-            <h3 className="text-sm mb-4">Company</h3>
+            <h3 className="text-sm mb-4">{t('company')}</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
                 <a href="#" className="hover:text-foreground transition-colors">
-                  About Us
+                  {t('aboutUs')}
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-foreground transition-colors">
-                  Contact
+                  {t('contact')}
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-foreground transition-colors">
-                  Privacy Policy
+                  {t('privacyPolicy')}
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-foreground transition-colors">
-                  Terms of Service
+                  {t('termsOfService')}
                 </a>
               </li>
             </ul>
@@ -76,7 +76,7 @@ export default function Footer() {
 
           {/* Connect */}
           <div>
-            <h3 className="text-sm mb-4">Connect</h3>
+            <h3 className="text-sm mb-4">{t('connect')}</h3>
             <div className="flex gap-3">
               <a
                 href="#"
@@ -108,7 +108,7 @@ export default function Footer() {
 
         {/* Bottom */}
         <div className="pt-8 border-t border-border text-center text-sm text-muted-foreground">
-          <p>&copy; 2025 Karya Desa. All rights reserved.</p>
+          <p>{t('copyright')}</p>
         </div>
       </div>
     </footer>

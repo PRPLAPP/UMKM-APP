@@ -8,7 +8,9 @@ import VillagerDashboard from './components/dashboard/VillagerDashboard';
 import MSMEDashboard from './components/dashboard/MSMEDashboard';
 import AdminDashboard from './components/dashboard/AdminDashboard';
 import { Toaster } from './components/ui/sonner';
+import ScrollToTopButton from './components/ui/ScrollToTopButton';
 import { useAuth } from './hooks/useAuth';
+import { I18nProvider } from './i18n';
 
 export default function App() {
   const { user, isAuthenticated, initializing, logout } = useAuth();
@@ -29,8 +31,9 @@ export default function App() {
     );
 
   return (
-    <Router>
-      <div className="min-h-screen">
+    <I18nProvider>
+      <Router>
+        <div className="min-h-screen">
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -51,7 +54,9 @@ export default function App() {
           />
         </Routes>
         <Toaster />
+        <ScrollToTopButton />
       </div>
-    </Router>
+      </Router>
+    </I18nProvider>
   );
 }

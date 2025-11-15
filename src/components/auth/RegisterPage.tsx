@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import ThemeToggle from '../ThemeToggle';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { useAuth } from '@/hooks/useAuth';
+import { useI18n } from '../../i18n';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -22,12 +23,13 @@ export default function RegisterPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const { register, authLoading } = useAuth();
+  const { t } = useI18n();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-      toast.error('Please fill in all fields');
+      toast.error(t('pleaseFillAllFields'));
       return;
     }
 
@@ -74,10 +76,10 @@ export default function RegisterPage() {
           </div>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Create an Account</CardTitle>
-              <CardDescription>Join your village community today</CardDescription>
-            </CardHeader>
+              <CardHeader>
+                <CardTitle>{t('createAccount')}</CardTitle>
+                <CardDescription>{t('createAccountDesc')}</CardDescription>
+              </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -93,7 +95,7 @@ export default function RegisterPage() {
                         htmlFor="villager"
                         className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                       >
-                        Villager
+                        {t('featureVillagersTitle')}
                       </Label>
                     </div>
                     <div>
@@ -174,17 +176,17 @@ export default function RegisterPage() {
                   {authLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
+                      {t('creatingAccount')}
                     </>
                   ) : (
-                    'Create Account'
+                    t('createAccount')
                   )}
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">
-                  Already have an account?{' '}
+                  {t('alreadyHaveAccount')}{' '}
                   <Link to="/login" className="text-primary hover:underline">
-                    Sign in
+                    {t('signIn')}
                   </Link>
                 </p>
               </form>

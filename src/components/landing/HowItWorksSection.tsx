@@ -1,29 +1,31 @@
 import React from 'react';
 import { UserPlus, Search, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useI18n } from '../../i18n';
 
-const steps = [
+const steps = (t: (k: string) => string) => [
   {
     icon: UserPlus,
-    title: 'Create Your Profile',
-    description: 'Sign up and choose your role - Villager, MSME, or Admin. Set up your personalized dashboard in minutes.',
+    title: t('step1Title'),
+    description: t('step1Desc'),
     step: '01',
   },
   {
     icon: Search,
-    title: 'Explore & Connect',
-    description: 'Discover local businesses, village events, tourism spots, and connect with your community members.',
+    title: t('step2Title'),
+    description: t('step2Desc'),
     step: '02',
   },
   {
     icon: TrendingUp,
-    title: 'Grow Together',
-    description: 'Collaborate, promote, and contribute to the village economy. Track progress with real-time analytics.',
+    title: t('step3Title'),
+    description: t('step3Desc'),
     step: '03',
   },
 ];
 
 export default function HowItWorksSection() {
+  const { t } = useI18n();
   return (
     <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -34,9 +36,9 @@ export default function HowItWorksSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl sm:text-4xl mb-4">How It Works</h2>
+          <h2 className="text-3xl sm:text-4xl mb-4">{t('howHeading')}</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Get started in three simple steps
+            {t('howSub')}
           </p>
         </motion.div>
 
@@ -44,7 +46,7 @@ export default function HowItWorksSection() {
           {/* Connection Line */}
           <div className="hidden md:block absolute top-20 left-1/4 right-1/4 h-0.5 bg-border" />
 
-          {steps.map((step, index) => (
+          {steps(t).map((step, index) => (
             <motion.div
               key={step.step}
               initial={{ opacity: 0, y: 20 }}
