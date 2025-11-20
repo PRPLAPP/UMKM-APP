@@ -9,13 +9,7 @@ COPY . .
 ARG VITE_API_BASE_URL=/api
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
-RUN echo "VITE_SUPABASE_URL=$VITE_SUPABASE_URL" && \
-    if [ -n "$VITE_SUPABASE_ANON_KEY" ]; then \
-      echo "VITE_SUPABASE_ANON_KEY length: ${#VITE_SUPABASE_ANON_KEY}"; \
-    else \
-      echo "VITE_SUPABASE_ANON_KEY is empty"; \
-    fi && \
-    npm run build
+RUN npm run build
 
 # Build backend
 FROM node:20-slim AS backend-builder

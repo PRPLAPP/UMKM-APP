@@ -1,12 +1,31 @@
 import { FastifyInstance } from "fastify";
 
-import { getCommunityHomeData, createNewsItem, deleteNewsItem, createTourismSpot, deleteTourismSpot } from "../services/community-service.js";
+import {
+  getCommunityHomeData,
+  createNewsItem,
+  deleteNewsItem,
+  createTourismSpot,
+  deleteTourismSpot,
+  fetchExternalEvents
+} from "../services/community-service.js";
 import { newsItemSchema, tourismSpotSchema } from "../schemas/community.js";
 import { HttpError } from "../utils/http-error.js";
 
 export async function registerCommunityRoutes(app: FastifyInstance) {
   app.get("/community/home", async () => {
     return getCommunityHomeData();
+  });
+
+  app.get("/community/events", async (_request, reply) => {
+    try {
+      const events = await fetchExternalEvents();
+      return reply.send(events);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return reply.status(error.statusCode).send({ message: error.message });
+      }
+      return reply.status(500).send({ message: (error as Error).message });
+    }
   });
 
   app.post("/community/news", { preHandler: [app.authenticate] }, async (request, reply) => {

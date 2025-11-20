@@ -5,6 +5,19 @@ import { HttpError } from "../utils/http-error.js";
 import { newsItemSchema, tourismSpotSchema } from "../schemas/community.js";
 import { env } from "../config/env.js";
 
+export interface ExternalEvent {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  createdAt: string;
+  updatedAt: string;
+  eventDate: string;
+  isCancelled: boolean;
+  requiresRegistration: boolean;
+  slotsAvailable: number | null;
+}
+
 export async function getCommunityHomeData() {
   const [newsItems, tourismSpots, msmeProfiles, stats] = await Promise.all([
     prisma.newsItem.findMany({
@@ -64,6 +77,58 @@ async function aggregateCommunityStats() {
     tourismSpotsCount,
     activeMembers
   };
+}
+
+export async function fetchExternalEvents(): Promise<ExternalEvent[]> {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+    return [];
+  }
+
+  const endpoint = `${env.SUPABASE_URL.replace(/\/$/, "")}/rest/v1/events?select=*&order=event_date.asc`;
+
+  type SupabaseEventRow = {
+    id: string;
+    title: string;
+    description: string;
+    location: string;
+    created_at: string;
+    updated_at: string;
+    event_date: string;
+    is_cancelled: boolean;
+    requires_registration: boolean;
+    slots_available: number | null;
+  };
+
+  try {
+    const response = await fetch(endpoint, {
+      headers: {
+        apikey: env.SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${env.SUPABASE_ANON_KEY}`
+      }
+    });
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || `Failed to fetch events (status ${response.status})`);
+    }
+
+    const rows = (await response.json()) as SupabaseEventRow[];
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      location: row.location,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      eventDate: row.event_date,
+      isCancelled: row.is_cancelled,
+      requiresRegistration: row.requires_registration,
+      slotsAvailable: row.slots_available
+    }));
+  } catch (error) {
+    console.error("Failed to fetch external events", error);
+    return [];
+  }
 }
 
 async function fetchExternalEventsCount(): Promise<number> {
