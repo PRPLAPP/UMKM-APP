@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from '../ui/avatar';
 import ThemeToggle from '../ThemeToggle';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { useAuth } from '@/hooks/useAuth';
-import { fetchCommunityHome, type CommunityHomeResponse } from '@/lib/api';
+import { fetchCommunityHome, fetchExternalEvents, type CommunityHomeResponse, type ExternalEvent } from '@/lib/api';
 import { toast } from 'sonner';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -21,6 +21,8 @@ export default function VillagerDashboard({ onLogout }: VillagerDashboardProps) 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [data, setData] = useState<CommunityHomeResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [events, setEvents] = useState<ExternalEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
   const [isDirectoryOpen, setIsDirectoryOpen] = useState(false);
   const [directorySearch, setDirectorySearch] = useState('');
   const { user } = useAuth();
@@ -47,7 +49,30 @@ export default function VillagerDashboard({ onLogout }: VillagerDashboardProps) 
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    setEventsLoading(true);
+
+    fetchExternalEvents()
+      .then((payload) => {
+        if (active) setEvents(payload);
+      })
+      .catch((error) => {
+        toast.error('Unable to load events', {
+          description: error instanceof Error ? error.message : undefined
+        });
+      })
+      .finally(() => {
+        if (active) setEventsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const stats = data?.stats;
+  const newsItems = useMemo(() => (data?.news ?? []).filter((item) => item.type !== 'event'), [data?.news]);
   const filteredMsmes = useMemo(() => {
     if (!data?.msmes) return [];
     const query = directorySearch.trim().toLowerCase();
@@ -116,8 +141,8 @@ export default function VillagerDashboard({ onLogout }: VillagerDashboardProps) 
               <CardContent className="space-y-3">
                 {loading ? (
                   <LoadingMessage message="Loading news..." />
-                ) : data?.news.length ? (
-                  data.news.map((item) => (
+                ) : newsItems.length ? (
+                  newsItems.map((item) => (
                     <div key={item.id} className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
                       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                         <Calendar className="h-5 w-5 text-primary" />
@@ -138,6 +163,35 @@ export default function VillagerDashboard({ onLogout }: VillagerDashboardProps) 
                   ))
                 ) : (
                   <p className="text-sm text-muted-foreground">No updates yet.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Upcoming Events</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {eventsLoading ? (
+                  <LoadingMessage message="Loading events..." />
+                ) : events.length ? (
+                  events.slice(0, 4).map((event) => (
+                    <div key={event.id} className="rounded-lg border border-border p-3 space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium">{event.title}</p>
+                        <Badge variant={event.isCancelled ? 'destructive' : 'secondary'} className="text-xs">
+                          {event.isCancelled ? 'Cancelled' : 'Scheduled'}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{new Date(event.eventDate).toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">{event.location || 'Location TBA'}</p>
+                      {event.requiresRegistration ? (
+                        <p className="text-xs text-muted-foreground">Registration required</p>
+                      ) : null}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No events available right now.</p>
                 )}
               </CardContent>
             </Card>

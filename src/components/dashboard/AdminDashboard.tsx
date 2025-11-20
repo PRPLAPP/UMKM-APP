@@ -148,6 +148,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   };
 
   const populationEntries = dashboardData?.population.entries ?? [];
+  const communityNews = (communityData?.news ?? []).filter((item) => item.type !== 'event');
 
   const resetNewsForm = () => {
     setNewsForm({ title: '', summary: '', type: 'announcement', publishedAt: '' });
@@ -365,14 +366,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           <CardContent className="space-y-6">
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium">Latest News & Events</h4>
-                <span className="text-xs text-muted-foreground">Showing {communityData?.news.length ?? 0} items</span>
+                <h4 className="font-medium">Latest News</h4>
+                <span className="text-xs text-muted-foreground">Showing {communityNews.length} items</span>
               </div>
               {communityLoading ? (
                 <SkeletonMessage />
-              ) : communityData?.news.length ? (
+              ) : communityNews.length ? (
                 <div className="space-y-2">
-                  {communityData.news.map((item) => (
+                  {communityNews.map((item) => (
                     <div key={item.id} className="flex items-start justify-between rounded-lg border border-border p-3">
                       <div>
                         <p className="font-medium">{item.title}</p>
@@ -389,6 +390,39 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">No news yet.</p>
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium">Upcoming Events</h4>
+                <span className="text-xs text-muted-foreground">
+                  {eventsLoading ? 'Syncing feed...' : `Showing ${Math.min(externalEvents.length, 4)} of ${externalEvents.length}`}
+                </span>
+              </div>
+              {eventsLoading ? (
+                <SkeletonMessage />
+              ) : externalEvents.length ? (
+                <div className="space-y-2">
+                  {externalEvents.slice(0, 4).map((event) => (
+                    <div key={event.id} className="rounded-lg border border-border p-3 space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium">{event.title}</p>
+                        <Badge variant={event.isCancelled ? 'destructive' : 'secondary'} className="text-xs">
+                          {event.isCancelled ? 'Cancelled' : 'Scheduled'}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{new Date(event.eventDate).toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">{event.description || 'No description provided.'}</p>
+                      <div className="text-xs text-muted-foreground flex flex-wrap gap-3">
+                        <span>📍 {event.location || 'TBA'}</span>
+                        <span>{event.requiresRegistration ? 'Registration required' : 'Open to all'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No events available from the external feed.</p>
               )}
             </div>
 
