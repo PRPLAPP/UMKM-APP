@@ -3,6 +3,7 @@ import { MsmeStatus } from "@prisma/client";
 import { prisma } from "../db/client.js";
 import { HttpError } from "../utils/http-error.js";
 import { newsItemSchema, tourismSpotSchema } from "../schemas/community.js";
+import { env } from "../config/env.js";
 
 export async function getCommunityHomeData() {
   const [newsItems, tourismSpots, msmeProfiles, stats] = await Promise.all([
@@ -51,7 +52,7 @@ export async function getCommunityHomeData() {
 
 async function aggregateCommunityStats() {
   const [eventsCount, businessesCount, tourismSpotsCount, activeMembers] = await Promise.all([
-    prisma.newsItem.count({ where: { type: "event" } }),
+    fetchExternalEventsCount(),
     prisma.msmeProfile.count({ where: { status: MsmeStatus.approved } }),
     prisma.tourismSpot.count(),
     prisma.user.count()
@@ -63,6 +64,45 @@ async function aggregateCommunityStats() {
     tourismSpotsCount,
     activeMembers
   };
+}
+
+async function fetchExternalEventsCount(): Promise<number> {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+    return 0;
+  }
+
+  const endpoint = `${env.SUPABASE_URL.replace(/\/$/, "")}/rest/v1/events?select=id`;
+
+  try {
+    const response = await fetch(endpoint, {
+      headers: {
+        apikey: env.SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${env.SUPABASE_ANON_KEY}`,
+        Prefer: "count=exact",
+        Range: "0-0"
+      }
+    });
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || `Failed to fetch events (status ${response.status})`);
+    }
+
+    const contentRange = response.headers.get("content-range");
+    if (contentRange) {
+      const totalPart = contentRange.split("/").pop();
+      const total = totalPart ? Number(totalPart) : NaN;
+      if (!Number.isNaN(total)) {
+        return total;
+      }
+    }
+
+    const payload = (await response.json()) as unknown[];
+    return payload.length;
+  } catch (error) {
+    console.error("Failed to fetch external events count", error);
+    return 0;
+  }
 }
 
 export async function createNewsItem(payload: unknown, userId: string) {

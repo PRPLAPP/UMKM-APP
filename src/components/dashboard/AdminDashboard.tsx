@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, LogOut, Menu, X, Users, Store, Activity, CheckCircle, XCircle, Loader2, Trash2 } from 'lucide-react';
+import { Bell, LogOut, Menu, X, Users, Store, Activity, CheckCircle, XCircle, Loader2, Trash2, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -23,9 +23,11 @@ import {
   deleteTourismSpot,
   fetchAdminDashboard,
   fetchCommunityHome,
+  fetchExternalEvents,
   updateMsmeStatus,
   type AdminDashboardResponse,
-  type CommunityHomeResponse
+  type CommunityHomeResponse,
+  type ExternalEvent
 } from '@/lib/api';
 
 interface AdminDashboardProps {
@@ -38,12 +40,19 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [communityData, setCommunityData] = useState<CommunityHomeResponse | null>(null);
   const [communityLoading, setCommunityLoading] = useState(true);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [externalEvents, setExternalEvents] = useState<ExternalEvent[]>([]);
   const [isNewsDialogOpen, setIsNewsDialogOpen] = useState(false);
   const [isTourismDialogOpen, setIsTourismDialogOpen] = useState(false);
-  const [newsForm, setNewsForm] = useState({
+  const [newsForm, setNewsForm] = useState<{
+    title: string;
+    summary: string;
+    type: 'business' | 'announcement';
+    publishedAt: string;
+  }>({
     title: '',
     summary: '',
-    type: 'event' as 'event' | 'business' | 'announcement',
+    type: 'announcement',
     publishedAt: ''
   });
   const [tourismForm, setTourismForm] = useState({
@@ -94,6 +103,24 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     loadCommunityData();
   }, []);
 
+  const loadExternalEvents = async () => {
+    setEventsLoading(true);
+    try {
+      const data = await fetchExternalEvents();
+      setExternalEvents(data);
+    } catch (error) {
+      toast.error('Unable to load events', {
+        description: error instanceof Error ? error.message : undefined
+      });
+    } finally {
+      setEventsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadExternalEvents();
+  }, []);
+
   const handleApprove = async (id: string, name: string) => {
     if (!token) return;
     try {
@@ -123,7 +150,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const populationEntries = dashboardData?.population.entries ?? [];
 
   const resetNewsForm = () => {
-    setNewsForm({ title: '', summary: '', type: 'event', publishedAt: '' });
+    setNewsForm({ title: '', summary: '', type: 'announcement', publishedAt: '' });
   };
 
   const resetTourismForm = () => {
@@ -440,19 +467,72 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </TabsContent>
 
               <TabsContent value="events" className="space-y-4">
-                <div className="text-center py-12 text-muted-foreground">
-                  <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Manage upcoming events from the community module.</p>
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={() => {
-                      setNewsForm((prev) => ({ ...prev, type: 'event' }));
-                      setIsNewsDialogOpen(true);
-                    }}
-                  >
-                    Create Event
-                  </Button>
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-medium">Upcoming Events</p>
+                      <p className="text-sm text-muted-foreground">Synced automatically from the external events feed.</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => void loadExternalEvents()} disabled={eventsLoading}>
+                      {eventsLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Refreshing...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Refresh
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {eventsLoading ? (
+                    <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading events...
+                    </div>
+                  ) : externalEvents.length ? (
+                    <div className="space-y-3">
+                      {externalEvents.map((event) => (
+                        <div key={event.id} className="rounded-lg border border-border p-4 space-y-3">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-base font-medium">{event.title}</p>
+                              <p className="text-xs text-muted-foreground">{new Date(event.eventDate).toLocaleString()}</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <Badge variant={event.isCancelled ? 'destructive' : 'secondary'}>
+                                {event.isCancelled ? 'Cancelled' : 'Scheduled'}
+                              </Badge>
+                              {event.requiresRegistration ? <Badge variant="outline">Registration required</Badge> : null}
+                            </div>
+                          </div>
+                          {event.description ? <p className="text-sm text-muted-foreground">{event.description}</p> : null}
+                          <div className="grid gap-4 text-sm sm:grid-cols-3">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Location</p>
+                              <p className="font-medium text-foreground">{event.location || '—'}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Slots</p>
+                              <p className="font-medium text-foreground">{event.slotsAvailable ?? 'Unlimited'}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Last Updated</p>
+                              <p className="font-medium text-foreground">{new Date(event.updatedAt).toLocaleString()}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No events available from the external feed.</p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
@@ -477,7 +557,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Publish Update</DialogTitle>
-            <DialogDescription>Share an event, announcement, or MSME highlight.</DialogDescription>
+            <DialogDescription>Share an announcement or MSME highlight.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -491,12 +571,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select value={newsForm.type} onValueChange={(value: 'event' | 'business' | 'announcement') => setNewsForm((prev) => ({ ...prev, type: value }))}>
+                <Select value={newsForm.type} onValueChange={(value: 'business' | 'announcement') => setNewsForm((prev) => ({ ...prev, type: value }))}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="event">Event</SelectItem>
                     <SelectItem value="business">Business</SelectItem>
                     <SelectItem value="announcement">Announcement</SelectItem>
                   </SelectContent>

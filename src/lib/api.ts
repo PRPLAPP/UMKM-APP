@@ -2,6 +2,9 @@ const API_BASE =
   import.meta.env.VITE_API_BASE_URL ||
   (typeof window !== "undefined" ? `${window.location.origin}/api` : "/api");
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const message = await response.text();
@@ -115,7 +118,7 @@ export interface AdminDashboardResponse {
 export interface NewsPayload {
   title: string;
   summary: string;
-  type: "event" | "business" | "announcement";
+  type: "business" | "announcement";
   publishedAt?: string;
 }
 
@@ -124,6 +127,19 @@ export interface TourismPayload {
   description: string;
   imageUrl: string;
   location: string;
+}
+
+export interface ExternalEvent {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  createdAt: string;
+  updatedAt: string;
+  eventDate: string;
+  isCancelled: boolean;
+  requiresRegistration: boolean;
+  slotsAvailable: number | null;
 }
 
 export interface MsmeProfile {
@@ -273,6 +289,49 @@ export function updateMsmeStatus(id: string, status: "pending" | "approved" | "r
     },
     body: JSON.stringify({ status })
   }).then((res) => handleResponse<{ id: string }>(res));
+}
+
+export function fetchExternalEvents() {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return Promise.reject(new Error("Events endpoint is not configured"));
+  }
+
+  const endpoint = `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/events?select=*&order=event_date.asc`;
+
+  type SupabaseEventRow = {
+    id: string;
+    title: string;
+    description: string;
+    location: string;
+    created_at: string;
+    updated_at: string;
+    event_date: string;
+    is_cancelled: boolean;
+    requires_registration: boolean;
+    slots_available: number | null;
+  };
+
+  return fetch(endpoint, {
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+    }
+  })
+    .then((res) => handleResponse<SupabaseEventRow[]>(res))
+    .then((rows) =>
+      rows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        location: row.location,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        eventDate: row.event_date,
+        isCancelled: row.is_cancelled,
+        requiresRegistration: row.requires_registration,
+        slotsAvailable: row.slots_available
+      }))
+    );
 }
 
 export function createNews(payload: NewsPayload, token: string) {
